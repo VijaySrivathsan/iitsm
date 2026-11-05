@@ -1,14 +1,9 @@
 package com.iitsm.service;
 
-import com.iitsm.assignment.AssignmentService;
-import com.iitsm.assignment.AssignmentStrategyRegistry;
-import com.iitsm.assignment.SkillBasedAssignmentStrategy;
-import com.iitsm.assignment.SmartRecommendationStrategy;
 import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.catalog.ITService;
 import com.iitsm.domain.incident.Impact;
 import com.iitsm.domain.incident.Incident;
-import com.iitsm.domain.incident.IncidentFactory;
 import com.iitsm.domain.incident.IncidentReport;
 import com.iitsm.domain.incident.IncidentStatus;
 import com.iitsm.domain.incident.Priority;
@@ -18,7 +13,6 @@ import com.iitsm.domain.user.Administrator;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
 import com.iitsm.event.IncidentEvent;
-import com.iitsm.event.IncidentEventPublisher;
 import com.iitsm.event.IncidentEventType;
 import com.iitsm.exception.IncidentNotFoundException;
 import com.iitsm.exception.InvalidStateTransitionException;
@@ -26,23 +20,16 @@ import com.iitsm.exception.MissingSlaConfigurationException;
 import com.iitsm.exception.TechnicianUnavailableException;
 import com.iitsm.exception.UnauthorizedOperationException;
 import com.iitsm.exception.WorkloadExceededException;
-import com.iitsm.priority.MatrixPriorityStrategy;
-import com.iitsm.priority.PriorityService;
-import com.iitsm.priority.WeightedScoringPriorityStrategy;
 import com.iitsm.repository.SlaPolicyRepository;
 import com.iitsm.sla.SlaService;
 import com.iitsm.support.MutableClock;
+import com.iitsm.support.ServiceLayerTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.event.ApplicationEvents;
-import org.springframework.test.context.event.RecordApplicationEvents;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -55,24 +42,11 @@ import static org.assertj.core.groups.Tuple.tuple;
  * IncidentService against a real (H2) database: authorisation rules, automatic classification,
  * SLA tracking, persistence and the events published for the Observer pattern.
  */
-@DataJpaTest
-@Import({IncidentService.class, IncidentFactory.class, PriorityService.class,
-        WeightedScoringPriorityStrategy.class, MatrixPriorityStrategy.class, SlaService.class,
-        AssignmentService.class, AssignmentStrategyRegistry.class, SkillBasedAssignmentStrategy.class,
-        SmartRecommendationStrategy.class, IncidentEventPublisher.class, IncidentServiceTest.TestClock.class})
+@ServiceLayerTest
 @TestPropertySource(properties = "itsm.assignment.auto=false") // assignment is tested in AssignmentServiceTest
-@RecordApplicationEvents
 class IncidentServiceTest {
 
     static final Instant NOW = Instant.parse("2026-11-06T10:00:00Z");
-
-    @TestConfiguration
-    static class TestClock {
-        @Bean
-        MutableClock clock() {
-            return new MutableClock(NOW);
-        }
-    }
 
     @Autowired private IncidentService service;
     @Autowired private SlaService slaService;

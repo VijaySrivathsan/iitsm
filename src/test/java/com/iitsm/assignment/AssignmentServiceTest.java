@@ -4,7 +4,6 @@ import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.catalog.ITService;
 import com.iitsm.domain.incident.Impact;
 import com.iitsm.domain.incident.Incident;
-import com.iitsm.domain.incident.IncidentFactory;
 import com.iitsm.domain.incident.IncidentReport;
 import com.iitsm.domain.incident.IncidentStatus;
 import com.iitsm.domain.incident.Urgency;
@@ -12,29 +11,19 @@ import com.iitsm.domain.user.Administrator;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
 import com.iitsm.event.IncidentEvent;
-import com.iitsm.event.IncidentEventPublisher;
 import com.iitsm.event.IncidentEventType;
 import com.iitsm.exception.InvalidInputException;
 import com.iitsm.exception.UnauthorizedOperationException;
-import com.iitsm.priority.MatrixPriorityStrategy;
-import com.iitsm.priority.PriorityService;
-import com.iitsm.priority.WeightedScoringPriorityStrategy;
 import com.iitsm.repository.SystemSettingRepository;
 import com.iitsm.service.IncidentService;
 import com.iitsm.sla.SlaService;
-import com.iitsm.support.MutableClock;
+import com.iitsm.support.ServiceLayerTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.event.ApplicationEvents;
-import org.springframework.test.context.event.RecordApplicationEvents;
 
-import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,22 +32,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Automatic and manual assignment end-to-end (H2 database, all four strategies registered).
  */
-@DataJpaTest
-@Import({AssignmentService.class, AssignmentStrategyRegistry.class, SkillBasedAssignmentStrategy.class,
-        LoadBasedAssignmentStrategy.class, RoundRobinAssignmentStrategy.class, SmartRecommendationStrategy.class,
-        IncidentService.class, IncidentFactory.class, PriorityService.class, WeightedScoringPriorityStrategy.class,
-        MatrixPriorityStrategy.class, SlaService.class, IncidentEventPublisher.class,
-        AssignmentServiceTest.TestClock.class})
-@RecordApplicationEvents
+@ServiceLayerTest
 class AssignmentServiceTest {
-
-    @TestConfiguration
-    static class TestClock {
-        @Bean
-        MutableClock clock() {
-            return new MutableClock(Instant.parse("2026-11-06T10:00:00Z"));
-        }
-    }
 
     @Autowired private AssignmentService assignment;
     @Autowired private IncidentService incidents;

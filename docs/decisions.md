@@ -69,4 +69,18 @@ If nobody suitable is free, the incident stays CLASSIFIED and a `NO_TECHNICIAN_A
 ## D15. Build output kept out of iCloud (`target.nosync`)
 The project sits in `~/Documents`, which is synced by iCloud Drive. iCloud created duplicate files such as `UserFactory 2.class` in `target/` and offloaded others mid-build, which broke the tests with "Operation timed out". Maven now builds into `target.nosync/`, and iCloud does not sync folders whose names end in `.nosync`. Moving the whole project outside `~/Documents` would be safer still.
 
-<!-- Add new entries below (D16, D17, ...) -->
+## D16. Audit and notifications are Observers, run in the same transaction
+`AuditListener` and `NotificationListener` are Spring `@EventListener`s on `IncidentEvent`. They run synchronously, inside the transaction that changed the incident.
+- **Audit:** an incident change and its audit line commit together or not at all, so the trail can never miss a change. `@Order` makes audit run before notifications.
+- **Notifications:** every channel call is wrapped in try/catch, so a failing email or SMS provider is logged and skipped. It never rolls back the incident change or blocks the other channels (test: `FailingSmsGatewayTest`).
+Alternative considered: `@TransactionalEventListener(AFTER_COMMIT)` with asynchronous delivery. It's better for real email at scale, because messages are sent only after a successful commit and slow providers don't delay users. It's more complex, and the gateways here are simulated, so it's noted as a scaling step.
+
+## D17. Notification design: Strategy (channels) + Adapter (gateways) + Factory (messages) + rule table (recipients)
+- **`NotificationChannel`** (Strategy): in-app, email and SMS share one interface. Each channel decides in `accepts()` whether it applies; for example, SMS is used only for urgent messages to users with a phone number.
+- **`EmailGateway` / `SmsGateway`** (Adapter targets): the channels depend only on these interfaces. The `Logging…Gateway` classes simulate a provider and keep an outbox for administrators. A real provider means one new adapter class.
+- **`NotificationFactory`** (Factory): builds the message text per event in one place, and decides urgency (SLA problems, escalations, P1/P2 assignment).
+- **Recipients:** an `EnumMap<IncidentEventType, Set<Audience>>` rule table in `NotificationListener`. The person who caused an event is never notified about it.
+- **Channels per role:** configurable via `itsm.notifications.channels.<ROLE>`. By default employees get in-app and email; technicians and administrators also get SMS for urgent messages.
+Adding a push channel = one `NotificationChannel` class + one `ChannelType` value. No existing class changes.
+
+<!-- Add new entries below (D18, D19, ...) -->

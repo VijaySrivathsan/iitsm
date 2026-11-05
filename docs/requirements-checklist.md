@@ -8,8 +8,8 @@ Tick these off as milestones land. Milestone in brackets.
 - [x] Priority from impact × urgency × business criticality (+ affected users) → P1–P4 [M4]
 - [x] ≥2 technician assignment strategies, switchable by admin at runtime [M5] (4 built; admin UI in M7)
 - [ ] SLA: per service/priority policy, deadlines, response + resolution tracking, warnings, violation detection & recording [M4, M8]
-- [ ] ≥2 notification mechanisms (simulated OK): in-app + email (+ SMS stretch) [M6]
-- [ ] Audit: complete incident history (timestamp, user, action, incident, prev/new state, description) [M6]
+- [x] ≥2 notification mechanisms (simulated OK): in-app + email + SMS [M6] (bell UI in M7)
+- [x] Audit: complete incident history (timestamp, user, action, incident, prev/new state, description) [M6] (screens in M7)
 - [ ] Search/filter with ≥5 criteria: ID, date, status, priority, category, service, technician, SLA status [M8]
 - [ ] ≥2 intelligent features [M8]
 - [ ] Persistence: users, services, incidents, technicians, SLA policies, audit, resolutions [M2, M4]

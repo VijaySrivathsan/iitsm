@@ -63,3 +63,13 @@ Coverage required by the brief: normal ops, boundary conditions, invalid inputs,
 | TC57 | Assignment | Business rule | Admin switches strategy from skill to load | Next incident goes to the least busy technician; choice persisted | AssignmentServiceTest#switchingStrategy_changesWhoGetsTheNextIncident | Pass |
 | TC58 | Authorization | Invalid input | Unknown strategy name / employee changes strategy | `InvalidInputException` / `UnauthorizedOperationException` | AssignmentServiceTest#changeStrategy_validatesNameAndRole | Pass |
 | TC59 | Assignment | Business rule | Technician marked unavailable | Never a candidate | AssignmentServiceTest#unavailableTechnicians_areNeverCandidates | Pass |
+| TC60 | Audit | Normal | Full lifecycle of a P1 incident | 8 audit lines in order with actor (emp1 / system / tech1), previous and new status, timestamps | AuditTrailTest#everyStepIsRecordedInOrderWithActorAndStates | Pass |
+| TC61 | Audit | Normal | Admin filters audit log by actor and by action + incident | Only matching lines returned | AuditTrailTest#adminCanFilterTheSystemWideLog | Pass |
+| TC62 | Authorization | Authorization | Employee reads the system-wide audit log | `UnauthorizedOperationException` | AuditTrailTest#nonAdminCannotReadTheSystemWideLog | Pass |
+| TC63 | Notification | Normal | P1 incident auto-assigned | Technician gets in-app, email and SMS; gateway outboxes show the email and SMS | NotificationTest#p1Assignment_reachesTechnicianByInAppEmailAndSms | Pass |
+| TC64 | Notification | Business rule | P4 incident assigned | In-app only, no SMS (not urgent) | NotificationTest#lowPriorityAssignment_doesNotSendSms | Pass |
+| TC65 | Notification | Business rule | Employee with a phone number | Never receives SMS (role preferences) | NotificationTest#employees_neverGetSms_evenWithAPhoneNumber | Pass |
+| TC66 | Notification | Business rule | Technician acknowledges | Reporter notified; technician not notified of their own action | NotificationTest#actorIsNotNotifiedOfTheirOwnAction | Pass |
+| TC67 | Notification | Exception | No technician available for a P1 | Administrators alerted (in-app + SMS) | NotificationTest#noTechnicianAvailable_alertsAdministrators | Pass |
+| TC68 | Authorization | Authorization | Marking someone else's notification read / non-admin viewing the outbox | `UnauthorizedOperationException` | NotificationTest#inbox_unreadCountAndMarkRead, #outbox_isForAdministratorsOnly | Pass |
+| TC69 | Notification | Exception | SMS provider unreachable | Incident still created and assigned; in-app and email still delivered | FailingSmsGatewayTest#smsFailure_doesNotBreakIncidentOrOtherChannels | Pass |
