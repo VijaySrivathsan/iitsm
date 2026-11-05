@@ -1,0 +1,8 @@
+# Developer profile: H2 with the web console at /h2-console and SQL logging.
+spring:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    show-sql: true

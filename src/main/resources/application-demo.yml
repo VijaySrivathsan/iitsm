@@ -1,0 +1,11 @@
+# Demo profile: PostgreSQL started with `docker compose up -d` (see docker-compose.yml).
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/itsm
+    username: itsm
+    password: itsm
+  jpa:
+    hibernate:
+      ddl-auto: update
+  thymeleaf:
+    cache: true

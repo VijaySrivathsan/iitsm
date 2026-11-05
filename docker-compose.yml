@@ -1,0 +1,21 @@
+# Local PostgreSQL for the `demo` profile. Credentials are local demo values only.
+services:
+  postgres:
+    image: postgres:16
+    container_name: itsm-postgres
+    environment:
+      POSTGRES_DB: itsm
+      POSTGRES_USER: itsm
+      POSTGRES_PASSWORD: itsm
+    ports:
+      - "5432:5432"
+    volumes:
+      - itsm-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itsm -d itsm"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  itsm-data:
