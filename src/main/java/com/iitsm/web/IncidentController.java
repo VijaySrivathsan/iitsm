@@ -8,6 +8,7 @@ import com.iitsm.domain.incident.Urgency;
 import com.iitsm.domain.user.User;
 import com.iitsm.intelligence.DuplicateDetectionService;
 import com.iitsm.intelligence.EscalationService;
+import com.iitsm.intelligence.ResolutionSuggester;
 import com.iitsm.security.CurrentUserProvider;
 import com.iitsm.service.CatalogService;
 import com.iitsm.service.IncidentAction;
@@ -24,6 +25,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The incident detail page shared by all roles, and every lifecycle action. Each action calls one
@@ -40,18 +42,21 @@ public class IncidentController {
     private final CatalogService catalog;
     private final DuplicateDetectionService duplicates;
     private final EscalationService escalation;
+    private final ResolutionSuggester resolutionSuggester;
     private final CurrentUserProvider currentUser;
     private final Clock clock;
 
     public IncidentController(IncidentService incidents, AssignmentService assignment, AuditService audit,
                               CatalogService catalog, DuplicateDetectionService duplicates,
-                              EscalationService escalation, CurrentUserProvider currentUser, Clock clock) {
+                              EscalationService escalation, ResolutionSuggester resolutionSuggester,
+                              CurrentUserProvider currentUser, Clock clock) {
         this.incidents = incidents;
         this.assignment = assignment;
         this.audit = audit;
         this.catalog = catalog;
         this.duplicates = duplicates;
         this.escalation = escalation;
+        this.resolutionSuggester = resolutionSuggester;
         this.currentUser = currentUser;
         this.clock = clock;
     }
@@ -63,7 +68,7 @@ public class IncidentController {
         Set<IncidentAction> actions = incidents.availableActions(incident, me);
         model.addAttribute("incident", incident);
         model.addAttribute("actions", actions);
-        model.addAttribute("can", actions.stream().map(Enum::name).collect(java.util.stream.Collectors.toSet()));
+        model.addAttribute("can", actions.stream().map(Enum::name).collect(Collectors.toSet()));
         model.addAttribute("history", audit.historyOf(incident.getNumber().toString()));
         model.addAttribute("now", Instant.now(clock));
         model.addAttribute("impacts", Impact.values());
@@ -79,6 +84,11 @@ public class IncidentController {
                 .filter(other -> incidents.canView(other, me)).toList());
         model.addAttribute("children", duplicates.confirmedDuplicatesOf(incident));
         model.addAttribute("escalations", escalation.historyOf(incident));
+        boolean worksOnIt = actions.contains(IncidentAction.RESOLVE) || actions.contains(IncidentAction.START_WORK)
+                || actions.contains(IncidentAction.ACKNOWLEDGE) || actions.contains(IncidentAction.ASSIGN);
+        if (incident.getStatus().isOpen() && worksOnIt) {
+            model.addAttribute("suggestions", resolutionSuggester.suggestFor(incident)); // feature G
+        }
         return "incidents/detail";
     }
 

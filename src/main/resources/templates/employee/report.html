@@ -24,6 +24,7 @@
                         <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}">Category</option>
                     </select>
                     <div class="form-text">Choosing a category lets the system prioritise and assign it immediately.</div>
+                    <div class="form-text text-info d-none" id="categoryHint"><i class="bi bi-magic me-1"></i><span></span></div>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="title">Short title</label>
@@ -63,5 +64,33 @@
         </form>
     </div></div>
 </main>
+<script>
+    // Feature F: suggest a category from the description while the employee types.
+    (function () {
+        const text = document.getElementById('description');
+        const title = document.getElementById('title');
+        const select = document.getElementById('categoryId');
+        const hint = document.getElementById('categoryHint');
+        let timer;
+        function ask() {
+            const q = (title.value + ' ' + text.value).trim();
+            if (q.length < 5) { return; }
+            fetch('/api/suggest-category?text=' + encodeURIComponent(q), {credentials: 'same-origin'})
+                .then(r => r.status === 200 ? r.json() : null)
+                .then(s => {
+                    if (!s) { hint.classList.add('d-none'); return; }
+                    hint.querySelector('span').textContent = 'Suggested category: ' + s.name;
+                    hint.classList.remove('d-none');
+                    if (!select.value || select.dataset.auto === 'true') {
+                        select.value = String(s.id);
+                        select.dataset.auto = 'true';
+                    }
+                })
+                .catch(() => hint.classList.add('d-none'));
+        }
+        select.addEventListener('change', () => { select.dataset.auto = 'false'; });
+        [text, title].forEach(el => el.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(ask, 400); }));
+    })();
+</script>
 </body>
 </html>

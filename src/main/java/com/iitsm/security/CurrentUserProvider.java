@@ -1,5 +1,7 @@
 package com.iitsm.security;
 
+import com.iitsm.domain.user.Employee;
+import com.iitsm.domain.user.Technician;
 import com.iitsm.domain.user.User;
 import com.iitsm.exception.UnauthorizedOperationException;
 import com.iitsm.repository.UserRepository;
@@ -33,5 +35,22 @@ public class CurrentUserProvider {
     public User currentUser() {
         return currentUserIfLoggedIn()
                 .orElseThrow(() -> new UnauthorizedOperationException("Please log in"));
+    }
+
+    /** The logged-in user as an Employee, or a clear "not allowed" error (no unchecked casts). */
+    public Employee currentEmployee() {
+        return as(Employee.class);
+    }
+
+    public Technician currentTechnician() {
+        return as(Technician.class);
+    }
+
+    private <T extends User> T as(Class<T> type) {
+        User user = currentUser();
+        if (!type.isInstance(user)) {
+            throw new UnauthorizedOperationException("This page is only for " + type.getSimpleName().toLowerCase() + "s");
+        }
+        return type.cast(user);
     }
 }

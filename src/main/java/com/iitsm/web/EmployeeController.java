@@ -38,7 +38,7 @@ public class EmployeeController {
 
     @GetMapping
     public String dashboard(Model model) {
-        Employee me = (Employee) currentUser.currentUser();
+        Employee me = currentUser.currentEmployee();
         model.addAttribute("incidents", incidents.reportedBy(me));
         return "employee/dashboard";
     }

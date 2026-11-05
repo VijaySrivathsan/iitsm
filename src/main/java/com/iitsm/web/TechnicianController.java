@@ -46,7 +46,7 @@ public class TechnicianController {
 
     @GetMapping
     public String dashboard(Model model) {
-        Technician me = (Technician) currentUser.currentUser();
+        Technician me = currentUser.currentTechnician();
         List<Incident> queue = incidents.assignedTo(me).stream().sorted(BY_URGENCY).toList();
         model.addAttribute("queue", queue);
         model.addAttribute("activeCount", assignment.activeWorkload(me));

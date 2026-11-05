@@ -2,14 +2,18 @@ package com.iitsm.bootstrap;
 
 import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.catalog.ITService;
+import com.iitsm.domain.incident.Priority;
+import com.iitsm.domain.sla.SlaPolicy;
 import com.iitsm.domain.user.NewUser;
 import com.iitsm.domain.user.Technician;
 import com.iitsm.domain.user.UserFactory;
 import com.iitsm.repository.CategoryRepository;
 import com.iitsm.repository.ITServiceRepository;
+import com.iitsm.repository.SlaPolicyRepository;
 import com.iitsm.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -39,13 +43,20 @@ public class DemoDataLoader implements ApplicationRunner {
     private final ITServiceRepository services;
     private final CategoryRepository categories;
     private final UserFactory userFactory;
+    private final SlaPolicyRepository slaPolicies;
+    private final HistoricalIncidentSeeder history;
+    private final boolean fastPaymentSla;
 
     public DemoDataLoader(UserRepository users, ITServiceRepository services, CategoryRepository categories,
-                          UserFactory userFactory) {
+                          UserFactory userFactory, SlaPolicyRepository slaPolicies, HistoricalIncidentSeeder history,
+                          @Value("${itsm.demo-data.fast-payment-sla:true}") boolean fastPaymentSla) {
         this.users = users;
         this.services = services;
         this.categories = categories;
         this.userFactory = userFactory;
+        this.slaPolicies = slaPolicies;
+        this.history = history;
+        this.fastPaymentSla = fastPaymentSla;
     }
 
     @Override
@@ -57,8 +68,15 @@ public class DemoDataLoader implements ApplicationRunner {
         Map<String, Category> cat = seedCategories();
         seedServices();
         seedUsers(cat);
-        log.info("Demo data created: {} users, {} services, {} categories (password '{}')",
-                users.count(), services.count(), categories.count(), DEMO_PASSWORD);
+        if (fastPaymentSla) {
+            // A service-specific SLA (overrides the 5/30 min default) so escalation can be shown in a short
+            // demo video: Payment Gateway P1 must be acknowledged in 2 min and resolved in 10.
+            ITService payment = services.findByNameIgnoreCase("Payment Gateway").orElseThrow();
+            slaPolicies.save(new SlaPolicy(payment, Priority.P1, 2, 10));
+        }
+        int past = history.seed();
+        log.info("Demo data created: {} users, {} services, {} categories, {} past incidents (password '{}')",
+                users.count(), services.count(), categories.count(), past, DEMO_PASSWORD);
     }
 
     private Map<String, Category> seedCategories() {

@@ -25,12 +25,14 @@ itsm:
   # Create demo accounts, services and categories on an empty database (bootstrap.DemoDataLoader)
   demo-data:
     enabled: true
+    # Payment Gateway P1 gets a 2 min / 10 min SLA so escalation is visible within a short demo
+    fast-payment-sla: true
   priority:
     # Which PriorityStrategy to use: weighted (default) or matrix
     strategy: weighted
   sla:
     # How often the background SLA monitor runs, and when an incident counts as "at risk"
-    monitor-interval: PT60S
+    monitor-interval: PT20S
     risk-threshold: 0.75
   escalation:
     enabled: true

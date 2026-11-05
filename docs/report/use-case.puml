@@ -1,0 +1,92 @@
+@startuml I-ITSM use cases
+' Render at https://www.plantuml.com/plantuml or with the PlantUML IntelliJ/VS Code plugin.
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor Employee as E
+actor Technician as T
+actor "Team lead" as L
+actor Administrator as A
+actor "System\n(scheduler)" as S
+
+T <|-- L
+
+rectangle "I-ITSM" {
+  usecase "Register / log in" as UC1
+  usecase "Report incident" as UC2
+  usecase "View & track own incidents" as UC3
+  usecase "Add information / answer request" as UC4
+  usecase "Verify resolution & give feedback" as UC5
+  usecase "Reopen incident" as UC6
+
+  usecase "View assigned queue & workload" as UC7
+  usecase "Acknowledge incident" as UC8
+  usecase "Investigate & add notes" as UC9
+  usecase "Request information" as UC10
+  usecase "Resolve incident" as UC11
+  usecase "Confirm / dismiss duplicate" as UC12
+  usecase "Set availability" as UC13
+
+  usecase "Manage users & technicians" as UC14
+  usecase "Manage IT services & categories" as UC15
+  usecase "Configure SLA policies" as UC16
+  usecase "Choose assignment strategy" as UC17
+  usecase "Classify / assign incidents" as UC18
+  usecase "Monitor dashboard & reports" as UC19
+  usecase "View audit log & outbox" as UC20
+
+  usecase "Search incidents" as UC21
+  usecase "Receive notifications" as UC22
+
+  usecase "Calculate priority" as UC30
+  usecase "Auto-assign technician" as UC31
+  usecase "Detect duplicates" as UC32
+  usecase "Monitor SLA & warn" as UC33
+  usecase "Escalate unacknowledged P1/P2" as UC34
+  usecase "Suggest category / resolution" as UC35
+}
+
+E --> UC1
+E --> UC2
+E --> UC3
+E --> UC4
+E --> UC5
+E --> UC6
+E --> UC21
+E --> UC22
+
+T --> UC1
+T --> UC7
+T --> UC8
+T --> UC9
+T --> UC10
+T --> UC11
+T --> UC12
+T --> UC13
+T --> UC21
+T --> UC22
+
+L --> UC34 : receives
+
+A --> UC1
+A --> UC14
+A --> UC15
+A --> UC16
+A --> UC17
+A --> UC18
+A --> UC19
+A --> UC20
+A --> UC21
+A --> UC22
+A --> UC12
+
+S --> UC33
+S --> UC34
+
+UC2 ..> UC30 : <<include>>
+UC2 ..> UC31 : <<include>>
+UC2 ..> UC32 : <<include>>
+UC2 ..> UC35 : <<extend>>
+UC11 ..> UC35 : <<extend>>
+@enduml

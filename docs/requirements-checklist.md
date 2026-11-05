@@ -29,8 +29,8 @@ NEW → CLASSIFIED → ASSIGNED → ACKNOWLEDGED → IN_PROGRESS → RESOLVED �
 - [x] B. Incident correlation (related incidents per service, outage hotspot banner) [M8]
 - [x] E. SLA risk detection (warn at 75% of elapsed SLA) [M8]
 - [x] D. Smart technician recommendation (scoring strategy) [M5]
-- [ ] F. Category suggestion from description (keywords) — optional
-- [ ] G. Suggested resolution from similar past incidents — optional
+- [x] F. Category suggestion from description (keywords) [M9]
+- [x] G. Suggested resolution from similar past incidents [M9]
 
 ## Exceptions to handle
 Invalid login, unauthorized op, invalid incident, invalid state transition, technician unavailable, workload exceeded, service not found, missing SLA config, duplicate incident, DB failure, invalid input.
@@ -38,7 +38,7 @@ Invalid login, unauthorized op, invalid incident, invalid state transition, tech
 ## Security ✅ (M7: login, roles, BCrypt, CSRF, validation, @PreAuthorize)
 Authentication, role-based authorization, BCrypt passwords, input validation (Bean Validation), CSRF on, method-level `@PreAuthorize`.
 
-## Deliverables (report)
+## Deliverables (report) — drafts in docs/report/ (report.md, diagrams.md, use-case.puml); team must add names, repo link, video
 1 Problem analysis · 2 Requirements spec · 3 Architecture diagram · 4 UML use case + class diagram · 5 Tech stack + justification (9 questions) · 6 Repo link · 7 ER diagram + schema + sample data · 8 ≥15 test cases · 9 Video showing 3 workflows (each member introduces self + explains a module)
 
 ## Rubric (120)

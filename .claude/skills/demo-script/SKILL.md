@@ -5,35 +5,68 @@ description: Step-by-step script for the 15-20 minute demo video covering the 3 
 
 # Demo script (3 required workflows)
 
-Setup: `docker compose up -d`, then `mvn spring-boot:run -Dspring-boot.run.profiles=demo`. Accounts in `docs/demo-accounts.md` (password `demo123`). Use two browser windows (one normal, one private) to show two roles side by side.
-
-Before recording, verify each step below actually works in the running app; list any step that fails and fix it first.
+**Setup:**
+- Start a fresh database:
+  - H2: `mvn spring-boot:run`
+  - or PostgreSQL: `docker compose up -d`, then `mvn spring-boot:run -Dspring-boot.run.profiles=demo`
+- **Wait for the log line "Demo data created"** before logging in.
+- Accounts are in `docs/demo-accounts.md`; every password is `demo123`.
+- Use separate browser profiles or private windows to show two roles side by side.
+- Timings in this setup:
+  - **Payment Gateway P1:** respond within 2 min, resolve within 10 min (a demo override of the 5/30 default).
+  - **SLA monitor:** runs every 20 s.
+  - So a P1 left alone is at risk after about 1.5 min, and breached and escalated to the team lead after about 2-2.5 min.
+- Before recording, walk through each step below and fix anything that fails.
 
 ## Intro (2 min)
-Each member introduces themself and the module they own. Show the architecture diagram and class diagram briefly.
+- Each member introduces themself and the module they own.
+- Show the architecture and class diagrams (`docs/report/diagrams.md`).
 
-## Workflow 1 — Report → prioritize → assign → notify (4 min)
-1. Log in as `emp1`. Report: service *Payment Gateway*, "Payment application unavailable, users cannot complete transactions", impact HIGH, urgency HIGH, ~500 affected users.
-2. Show the created incident: auto category suggestion (if F built), computed priority **P1** with the score breakdown, SLA deadlines (response 5 min, resolution 30 min).
-3. Talking point: priority = Strategy pattern; incident creation via Factory; lifecycle NEW → CLASSIFIED → ASSIGNED via State pattern.
-4. Show auto-assignment to `tech1` and which strategy chose them (skill-based). As `admin`, switch strategy to load-based to show it's swappable.
-5. Show notifications: in-app bell for `tech1`, simulated email/SMS in the notification log. Talking point: Observer + Adapter.
+## Workflow 1: report → prioritise → assign → notify (4 min)
+1. Log in as `emp1` and open **Report incident**.
+2. Fill in:
+   - service *Payment Gateway*;
+   - title "Payment application unavailable";
+   - description "The payment application is unavailable and users cannot complete transactions.";
+   - impact High, urgency High, 500 users.
+   While you type, point out the **suggested category: APPLICATION** (feature F).
+3. Submit. INC1001 opens as **P1 - Critical**. Point to "How the priority was calculated" (Strategy pattern) and the SLA panel's deadlines (service-specific SLA).
+4. Show the audit timeline: CREATED → CLASSIFIED → ASSIGNED to Karan Shah (`tech1`), "by 'skill' strategy".
+   **Talking points:**
+   - the State pattern moves the status;
+   - `IncidentFactory` created the incident;
+   - Observer: the timeline and notifications are listeners.
+5. As `admin`:
+   - **Monitor → Email/SMS outbox** shows the email and SMS to tech1 (Adapter pattern).
+   - **Configure → Assignment strategy**: switch to `load` and back, to show it is swappable at runtime.
 
-## Workflow 2 — Investigate → SLA monitored → resolve → user notified (4 min)
-1. Log in as `tech1`. Acknowledge, start work, add investigation note, request more info.
-2. As `emp1`, answer the info request.
-3. Show SLA panel: time remaining, "at risk" warning (feature E).
-4. As `tech1`, resolve with resolution details. As `emp1`, verify and give feedback; incident closes.
-5. Show the full audit trail for the incident (timestamps, user, prev/new state).
-6. Try an illegal transition (e.g. close a NEW incident via the admin screen) → friendly error from `InvalidStateTransitionException`.
+## Workflow 2: investigate → SLA monitored → resolve → user notified (4 min)
+1. As `tech1`:
+   - the bell shows a notification;
+   - **My queue** is ordered by SLA;
+   - open INC1001 and point out **Suggested resolutions from similar past incidents** (feature G).
+2. Acknowledge (SLA response recorded) → Start investigation → Ask the reporter "Does it fail for card and UPI?".
+3. As `emp1`, answer the question (the status goes PENDING_INFO → IN_PROGRESS).
+4. As `tech1`, add a note, then Resolve ("Restarted payment pods and raised memory limit", root cause "Memory leak").
+5. As `emp1`, verify with 5 stars, then close. Show the final page: CLOSED, SLA MET, resolution and feedback.
+6. Show an illegal action being refused. For example, on a new incident as `admin`, the Close button isn't offered, because the State pattern only allows legal operations. Mention the test that checks all 90 transitions.
 
-## Workflow 3 — Multiple reports → duplicates/correlation → escalation (4 min)
-1. As `emp2` and `emp3`, report "Payment transaction failing" and "Unable to make payment".
-2. Show duplicate detection flagging them as related to the first incident (feature A) and linking them.
-3. Show a P1 left unacknowledged: scheduler escalates technician → team lead → admin (feature C); show escalation notifications and audit entries.
+## Workflow 3: multiple reports → duplicates/correlation → escalation (4 min)
+1. As `emp2`, report "Payment transaction failing" / "Customers get an error when paying at checkout" (Payment Gateway, High/High).
+2. As `emp3`, report "Unable to make payment" / "Payment page shows an error".
+3. Open either one: **Possible duplicate of INC1001** with a similarity score (feature A), plus **Related incidents** on the same service (feature B). As the assigned technician, click **Confirm & link**.
+4. As `admin`, the Overview shows **"Possible service outage: Payment Gateway (n open reports in the last hour)"**, plus breakdowns and workload.
+5. Leave one of the new P1s unacknowledged:
+   - after about 1.5 min it shows **SLA AT RISK** (feature E);
+   - after about 2-2.5 min it shows **SLA BREACHED** and the **Escalations** panel shows "Level 1: Team lead → Meera Pillai" (feature C);
+   - log in as `lead1` to show the escalation notification;
+   - one window later it escalates to `sysadmin`.
 
-## Reports & search (2 min)
-As `admin`: dashboard (totals, open, critical, resolved, SLA violations), technician workload, incidents by service; filter by ≥5 criteria.
+## Search & reports (2 min)
+- **Search**: combine text "payment" + priority P1 + status, then filter by SLA status BREACHED.
+- Admin Overview: SLA compliance %, average fix time, the at-risk list, and the history from the 28 seeded past incidents.
 
 ## Close (1 min)
-Patterns used and where, test count (`mvn test`), what you'd do next at scale.
+- Patterns used and where (`docs/report/diagrams.md` §3).
+- `mvn test`: 240+ tests passing.
+- What you'd do at scale (report §5, question 9).

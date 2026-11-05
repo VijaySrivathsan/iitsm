@@ -5,6 +5,7 @@ import com.iitsm.domain.user.Administrator;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
 import com.iitsm.domain.user.User;
+import com.iitsm.exception.UnauthorizedOperationException;
 import com.iitsm.repository.IncidentRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
@@ -69,7 +70,10 @@ public class SearchService {
         if (viewer instanceof Technician tech) {
             return tech.isTeamLead() ? null : assignedTo(tech);
         }
-        return reportedBy((Employee) viewer);
+        if (viewer instanceof Employee employee) {
+            return reportedBy(employee);
+        }
+        throw new UnauthorizedOperationException("Unknown kind of user");
     }
 
     private Instant startOf(LocalDate day) {

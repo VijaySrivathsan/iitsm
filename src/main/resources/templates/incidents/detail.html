@@ -61,6 +61,19 @@
                 </div>
             </div>
 
+            <div class="card mb-4 border-info" th:if="${suggestions != null and not #lists.isEmpty(suggestions)}">
+                <div class="card-header text-info"><i class="bi bi-lightbulb me-1"></i>Suggested resolutions from similar past incidents</div>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item" th:each="s : ${suggestions}">
+                        <div><a th:href="@{/incidents/{n}(n=${s.pastIncident.number})}" th:text="${s.pastIncident.number}">INC</a>
+                            <span th:text="${s.pastIncident.title}">title</span>
+                            <span class="badge text-bg-light" th:text="'match ' + ${#numbers.formatDecimal(s.similarity * 100, 1, 0)} + '%'">40%</span></div>
+                        <div class="text-success" th:text="${s.pastIncident.resolution.summary}">fix</div>
+                        <div class="text-muted" th:if="${s.pastIncident.resolution.rootCause}" th:text="'Root cause: ' + ${s.pastIncident.resolution.rootCause}">rc</div>
+                    </li>
+                </ul>
+            </div>
+
             <div class="card mb-4" th:if="${incident.resolution != null}">
                 <div class="card-header text-success"><i class="bi bi-check2-circle me-1"></i>Resolution</div>
                 <div class="card-body">

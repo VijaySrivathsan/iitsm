@@ -107,4 +107,8 @@ Alternatives: one repository method per combination, which explodes in number, o
 `DuplicateDetector` and `SlaRiskEvaluator` are interfaces, so a machine-learning version could replace the rule-based one without touching any caller.
 Known limitation: text similarity ignores word order and meaning, so "payment works" and "payment fails" share the word "payment". That's why a person confirms each suggestion.
 
-<!-- Add new entries below (D21, D22, ...) -->
+## D21. Demo data drives the real domain model
+`HistoricalIncidentSeeder` creates its 28 past incidents through the same constructors, `PriorityService`, `SlaService` and State-pattern methods as live incidents, just with past timestamps. Seeded data therefore always follows the business rules, and the dashboards, search and feature G work from the very first start. The history is numbered below INC1001 and is at least 2 days old, so it never interferes with the live demo (duplicate detection only looks back 24 h).
+For the video, a Payment Gateway P1 override (respond in 2 min, resolve in 10) and a 20 s monitor interval make the escalation chain visible within minutes. This also demonstrates service-specific SLA policies.
+
+<!-- Add new entries below (D22, D23, ...) -->
