@@ -6,7 +6,7 @@ Tick these off as milestones land. Milestone in brackets.
 - [ ] Users: Employee, Technician, Administrator; register/login [M2, M7]
 - [ ] Incidents: create, view, update, assign, resolve, close [M3, M7]
 - [x] Priority from impact × urgency × business criticality (+ affected users) → P1–P4 [M4]
-- [ ] ≥2 technician assignment strategies, switchable by admin at runtime [M5]
+- [x] ≥2 technician assignment strategies, switchable by admin at runtime [M5] (4 built; admin UI in M7)
 - [ ] SLA: per service/priority policy, deadlines, response + resolution tracking, warnings, violation detection & recording [M4, M8]
 - [ ] ≥2 notification mechanisms (simulated OK): in-app + email (+ SMS stretch) [M6]
 - [ ] Audit: complete incident history (timestamp, user, action, incident, prev/new state, description) [M6]
@@ -27,7 +27,7 @@ NEW → CLASSIFIED → ASSIGNED → ACKNOWLEDGED → IN_PROGRESS → RESOLVED �
 - [ ] A. Duplicate detection (text similarity + same service + time window) [M8]
 - [ ] C. Automatic escalation (unacknowledged P1/P2 → team lead → admin) [M8]
 - [ ] E. SLA risk detection (warn at 75% of elapsed SLA) [M8]
-- [ ] D. Smart technician recommendation (scoring strategy) [M5]
+- [x] D. Smart technician recommendation (scoring strategy) [M5]
 - [ ] F. Category suggestion from description (keywords) — optional
 - [ ] G. Suggested resolution from similar past incidents — optional
 

@@ -1,5 +1,6 @@
 package com.iitsm.repository;
 
+import com.iitsm.domain.catalog.ITService;
 import com.iitsm.domain.incident.Incident;
 import com.iitsm.domain.incident.IncidentStatus;
 import com.iitsm.domain.user.Employee;
@@ -32,4 +33,8 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
 
     /** Number of incidents in the given statuses held by a technician (their workload). */
     long countByAssigneeAndStatusIn(Technician assignee, Collection<IncidentStatus> statuses);
+
+    /** How many incidents on a service this technician has handled (experience with that service). */
+    long countByAssigneeAndServiceAndStatusIn(Technician assignee, ITService service,
+                                              Collection<IncidentStatus> statuses);
 }

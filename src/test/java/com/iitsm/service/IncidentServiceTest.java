@@ -1,5 +1,9 @@
 package com.iitsm.service;
 
+import com.iitsm.assignment.AssignmentService;
+import com.iitsm.assignment.AssignmentStrategyRegistry;
+import com.iitsm.assignment.SkillBasedAssignmentStrategy;
+import com.iitsm.assignment.SmartRecommendationStrategy;
 import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.catalog.ITService;
 import com.iitsm.domain.incident.Impact;
@@ -14,6 +18,7 @@ import com.iitsm.domain.user.Administrator;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
 import com.iitsm.event.IncidentEvent;
+import com.iitsm.event.IncidentEventPublisher;
 import com.iitsm.event.IncidentEventType;
 import com.iitsm.exception.IncidentNotFoundException;
 import com.iitsm.exception.InvalidStateTransitionException;
@@ -35,6 +40,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 
@@ -52,7 +58,9 @@ import static org.assertj.core.groups.Tuple.tuple;
 @DataJpaTest
 @Import({IncidentService.class, IncidentFactory.class, PriorityService.class,
         WeightedScoringPriorityStrategy.class, MatrixPriorityStrategy.class, SlaService.class,
-        IncidentServiceTest.TestClock.class})
+        AssignmentService.class, AssignmentStrategyRegistry.class, SkillBasedAssignmentStrategy.class,
+        SmartRecommendationStrategy.class, IncidentEventPublisher.class, IncidentServiceTest.TestClock.class})
+@TestPropertySource(properties = "itsm.assignment.auto=false") // assignment is tested in AssignmentServiceTest
 @RecordApplicationEvents
 class IncidentServiceTest {
 

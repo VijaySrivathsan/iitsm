@@ -52,3 +52,14 @@ Coverage required by the brief: normal ops, boundary conditions, invalid inputs,
 | TC46 | Priority | Normal | Reporter lowers impact and urgency to LOW | Priority P3, new 8 h deadline, PRIORITY_CHANGED event | IncidentServiceTest#lowerImpactAndUrgency_recalculatesPriorityAndDeadlines | Pass |
 | TC47 | SLA | Exception | Technician acknowledges 6 minutes after a P1 is reported | SLA BREACHED, SLA_VIOLATED event published | IncidentServiceTest#acknowledgeAfterResponseTarget_breachesSlaAndPublishesViolation | Pass |
 | TC48 | SLA | Normal | Resolved 20 minutes into a 30-minute window | SLA MET | IncidentServiceTest#resolveWithinTarget_marksSlaMet | Pass |
+| TC49 | Assignment | Normal | Skill-based: two database technicians and one network technician | Only database technicians, least busy first | AssignmentStrategyTest#skill_choosesOnlySkilledTechnicians_leastLoadedFirst | Pass |
+| TC50 | Assignment | Boundary | Skill-based: two technicians with equal workload | The more experienced one wins | AssignmentStrategyTest#skill_tieOnWorkload_goesToMoreExperienced | Pass |
+| TC51 | Assignment | Normal | Load-based | Least busy first, skills ignored (priority-queue order) | AssignmentStrategyTest#load_choosesLeastBusyRegardlessOfSkill | Pass |
+| TC52 | Assignment | Normal | Round-robin, three incidents | Turns rotate alice → bob → alice among skilled technicians | AssignmentStrategyTest#roundRobin_takesTurnsAmongSkilledTechnicians | Pass |
+| TC53 | Intelligence (D) | Business rule | Smart recommendation | Skilled senior with service history scores 90 and ranks first; the reason explains the score | AssignmentStrategyTest#smart_prefersSkilledSeniorWithServiceHistory | Pass |
+| TC54 | Assignment | Boundary | Any strategy with no candidates | Nobody selected | AssignmentStrategyTest#allStrategies_handleNoCandidates | Pass |
+| TC55 | Assignment | Normal | Employee reports a database incident | Auto-assigned to the database technician; CREATED → CLASSIFIED → ASSIGNED events | AssignmentServiceTest#report_withCategory_isAutoAssignedToSkilledTechnician | Pass |
+| TC56 | Assignment | Exception | Only skilled technician is at max workload | Incident stays CLASSIFIED; NO_TECHNICIAN_AVAILABLE event | AssignmentServiceTest#whenSkilledTechnicianIsFull_incidentStaysClassifiedAndAdminsAreAlerted | Pass |
+| TC57 | Assignment | Business rule | Admin switches strategy from skill to load | Next incident goes to the least busy technician; choice persisted | AssignmentServiceTest#switchingStrategy_changesWhoGetsTheNextIncident | Pass |
+| TC58 | Authorization | Invalid input | Unknown strategy name / employee changes strategy | `InvalidInputException` / `UnauthorizedOperationException` | AssignmentServiceTest#changeStrategy_validatesNameAndRole | Pass |
+| TC59 | Assignment | Business rule | Technician marked unavailable | Never a candidate | AssignmentServiceTest#unavailableTechnicians_areNeverCandidates | Pass |

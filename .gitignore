@@ -27,3 +27,6 @@ bin/
 *.log
 *.local.*
 .claude/settings.local.json
+
+# Build output (renamed so iCloud does not sync it)
+target.nosync/

@@ -57,4 +57,16 @@ Known limitation: the SLA clock keeps running while the incident waits for the r
 ## D13. Classification happens automatically when the reporter picks a category
 If the employee chooses a category when reporting, the system classifies the incident at once (priority calculated, SLA started), and the audit trail records the actor as `system`. Otherwise it stays NEW until an administrator picks a category. Either way the priority is always calculated, never typed in by hand.
 
-<!-- Add new entries below (D14, D15, ...) -->
+## D14. Assignment strategies switchable at runtime, stored as a setting
+Alternatives: a config-file choice (as for priority), or an `if/else` per strategy in the service.
+Why: the brief asks that the assignment strategy can be changed without redesigning the application, and an administrator should be able to do it from the UI. `AssignmentStrategyRegistry` receives every `AssignmentStrategy` from Spring and stores the active name in the `system_setting` table, so the choice takes effect immediately and survives restarts. The four strategies are skill, load, round-robin and smart.
+`AssignmentService` prepares the eligible `Candidate`s (available, below maximum workload, with workload and service history). The strategies are therefore pure functions with no database access, which makes them easy to test.
+Data structures:
+- `PriorityQueue` (a min-heap) for load-based assignment.
+- `ConcurrentHashMap<String, AtomicInteger>` for the round-robin turn per category, which is safe if two incidents arrive at once.
+If nobody suitable is free, the incident stays CLASSIFIED and a `NO_TECHNICIAN_AVAILABLE` event alerts administrators. It is never forced onto someone who is unavailable or full.
+
+## D15. Build output kept out of iCloud (`target.nosync`)
+The project sits in `~/Documents`, which is synced by iCloud Drive. iCloud created duplicate files such as `UserFactory 2.class` in `target/` and offloaded others mid-build, which broke the tests with "Operation timed out". Maven now builds into `target.nosync/`, and iCloud does not sync folders whose names end in `.nosync`. Moving the whole project outside `~/Documents` would be safer still.
+
+<!-- Add new entries below (D16, D17, ...) -->

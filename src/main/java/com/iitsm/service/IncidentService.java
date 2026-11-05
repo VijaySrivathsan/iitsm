@@ -19,15 +19,15 @@ import com.iitsm.domain.user.Administrator;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
 import com.iitsm.domain.user.User;
+import com.iitsm.assignment.AssignmentService;
 import com.iitsm.event.IncidentEvent;
+import com.iitsm.event.IncidentEventPublisher;
 import com.iitsm.event.IncidentEventType;
 import com.iitsm.exception.CategoryNotFoundException;
 import com.iitsm.exception.IncidentNotFoundException;
 import com.iitsm.exception.ServiceNotFoundException;
-import com.iitsm.exception.TechnicianUnavailableException;
 import com.iitsm.exception.UnauthorizedOperationException;
 import com.iitsm.exception.UserNotFoundException;
-import com.iitsm.exception.WorkloadExceededException;
 import com.iitsm.priority.PriorityInput;
 import com.iitsm.priority.PriorityResult;
 import com.iitsm.priority.PriorityService;
@@ -36,7 +36,6 @@ import com.iitsm.repository.CategoryRepository;
 import com.iitsm.repository.ITServiceRepository;
 import com.iitsm.repository.IncidentRepository;
 import com.iitsm.repository.TechnicianRepository;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,13 +66,14 @@ public class IncidentService {
     private final IncidentFactory incidentFactory;
     private final PriorityService priorityService;
     private final SlaService slaService;
-    private final ApplicationEventPublisher events;
+    private final AssignmentService assignmentService;
+    private final IncidentEventPublisher events;
     private final Clock clock;
 
     public IncidentService(IncidentRepository incidents, ITServiceRepository services,
                            CategoryRepository categories, TechnicianRepository technicians,
                            IncidentFactory incidentFactory, PriorityService priorityService, SlaService slaService,
-                           ApplicationEventPublisher events, Clock clock) {
+                           AssignmentService assignmentService, IncidentEventPublisher events, Clock clock) {
         this.incidents = incidents;
         this.services = services;
         this.categories = categories;
@@ -81,6 +81,7 @@ public class IncidentService {
         this.incidentFactory = incidentFactory;
         this.priorityService = priorityService;
         this.slaService = slaService;
+        this.assignmentService = assignmentService;
         this.events = events;
         this.clock = clock;
     }
@@ -103,6 +104,7 @@ public class IncidentService {
                 "Reported by " + actor.getUsername() + " for service " + service.getName());
         if (category != null) {
             applyClassification(incident, category, null); // automatic, done by the system
+            assignmentService.autoAssign(incident);
         }
         return incident;
     }
@@ -144,11 +146,6 @@ public class IncidentService {
         return incidents.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
-    /** Number of incidents currently occupying a technician. */
-    @Transactional(readOnly = true)
-    public long activeWorkload(Technician technician) {
-        return incidents.countByAssigneeAndStatusIn(technician, IncidentStatus.workloadStatuses());
-    }
 
     // ------------------------------------------------------------------ classify & assign
 
@@ -156,7 +153,11 @@ public class IncidentService {
     public Incident classify(String incidentNumber, Long categoryId, User actor) {
         requireAdmin(actor, "classify incidents");
         Incident incident = find(incidentNumber);
+        boolean firstClassification = incident.getStatus() == IncidentStatus.NEW;
         applyClassification(incident, findCategory(categoryId), actor);
+        if (firstClassification) {
+            assignmentService.autoAssign(incident);
+        }
         return incident;
     }
 
@@ -189,31 +190,14 @@ public class IncidentService {
         return incident;
     }
 
-    /** An administrator assigns (or reassigns) a technician. */
+    /** An administrator assigns (or reassigns) a specific technician. */
     public Incident assign(String incidentNumber, Long technicianId, User actor) {
         requireAdmin(actor, "assign incidents");
         Incident incident = find(incidentNumber);
         Technician technician = technicians.findById(technicianId)
                 .orElseThrow(() -> new UserNotFoundException(technicianId));
-        checkCanTakeIncident(incident, technician);
-        IncidentStatus before = incident.getStatus();
-        incident.assignTo(technician);
-        publish(IncidentEventType.ASSIGNED, incident, before, actor, "Assigned to " + technician.getUsername());
+        assignmentService.assign(incident, technician, actor);
         return incident;
-    }
-
-    /** Rejects technicians who are unavailable or already at their maximum workload. */
-    void checkCanTakeIncident(Incident incident, Technician technician) {
-        if (!technician.isActive() || !technician.isAvailable()) {
-            throw new TechnicianUnavailableException("Technician " + technician.getUsername() + " is not available");
-        }
-        if (incident.isAssignedTo(technician)) {
-            return; // re-assigning to the same person does not add to their workload
-        }
-        long active = activeWorkload(technician);
-        if (!technician.hasCapacityFor((int) active)) {
-            throw new WorkloadExceededException(technician.getUsername(), (int) active, technician.getMaxWorkload());
-        }
     }
 
     // ------------------------------------------------------------------ technician work
@@ -376,7 +360,6 @@ public class IncidentService {
 
     private void publish(IncidentEventType type, Incident incident, IncidentStatus before, User actor,
                          String description) {
-        events.publishEvent(new IncidentEvent(type, incident.getId(), incident.getNumber().toString(),
-                before, incident.getStatus(), actor == null ? null : actor.getUsername(), description, now()));
+        events.publish(type, incident, before, actor, description);
     }
 }

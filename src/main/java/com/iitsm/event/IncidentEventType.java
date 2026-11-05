@@ -9,6 +9,7 @@ public enum IncidentEventType {
     CLASSIFIED("Incident classified"),
     PRIORITY_CHANGED("Priority changed"),
     ASSIGNED("Technician assigned"),
+    NO_TECHNICIAN_AVAILABLE("No technician available for automatic assignment"),
     ACKNOWLEDGED("Technician acknowledged incident"),
     WORK_STARTED("Investigation started"),
     INFO_REQUESTED("Information requested from reporter"),

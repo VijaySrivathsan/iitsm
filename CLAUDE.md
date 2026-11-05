@@ -33,6 +33,6 @@ Controllers never touch repositories directly. Domain logic lives in domain/serv
 - Keep this file short. Detailed plan lives in `docs/plan.md`.
 
 ## Commands
-- Test: `mvn test`
+- Test: `mvn test` (build output goes to `target.nosync/` so iCloud doesn't sync it)
 - Run (H2): `mvn spring-boot:run`
 - Run (Postgres demo): `docker compose up -d` then `mvn spring-boot:run -Dspring-boot.run.profiles=demo`

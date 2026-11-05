@@ -6,7 +6,7 @@
 - [x] M2 Domain model (`prompts/02-domain-model.md`): target Nov 7
 - [x] M3 Lifecycle / State pattern (`prompts/03-lifecycle.md`): target Nov 8–9
 - [x] M4 Priority + SLA (`prompts/04-priority-sla.md`): target Nov 10
-- [ ] M5 Assignment strategies (`prompts/05-assignment.md`): target Nov 11
+- [x] M5 Assignment strategies (`prompts/05-assignment.md`): target Nov 11
 - [ ] M6 Notifications + audit (`prompts/06-notifications-audit.md`): target Nov 12
 - [ ] M7 Security + UI (`prompts/07-security-ui.md`): target Nov 13–15
 - [ ] M8 Search, reports, intelligence (`prompts/08-search-reports-intelligence.md`): target Nov 16–17
