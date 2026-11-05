@@ -3,6 +3,7 @@ package com.iitsm.service;
 import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.catalog.ITService;
 import com.iitsm.domain.incident.Feedback;
+import com.iitsm.domain.incident.Impact;
 import com.iitsm.domain.incident.Incident;
 import com.iitsm.domain.incident.IncidentFactory;
 import com.iitsm.domain.incident.IncidentNumber;
@@ -11,6 +12,9 @@ import com.iitsm.domain.incident.IncidentStatus;
 import com.iitsm.domain.incident.NoteType;
 import com.iitsm.domain.incident.Priority;
 import com.iitsm.domain.incident.Resolution;
+import com.iitsm.domain.incident.Urgency;
+import com.iitsm.domain.sla.SlaPolicy;
+import com.iitsm.domain.sla.SlaStatus;
 import com.iitsm.domain.user.Administrator;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
@@ -24,6 +28,10 @@ import com.iitsm.exception.TechnicianUnavailableException;
 import com.iitsm.exception.UnauthorizedOperationException;
 import com.iitsm.exception.UserNotFoundException;
 import com.iitsm.exception.WorkloadExceededException;
+import com.iitsm.priority.PriorityInput;
+import com.iitsm.priority.PriorityResult;
+import com.iitsm.priority.PriorityService;
+import com.iitsm.sla.SlaService;
 import com.iitsm.repository.CategoryRepository;
 import com.iitsm.repository.ITServiceRepository;
 import com.iitsm.repository.IncidentRepository;
@@ -57,33 +65,45 @@ public class IncidentService {
     private final CategoryRepository categories;
     private final TechnicianRepository technicians;
     private final IncidentFactory incidentFactory;
+    private final PriorityService priorityService;
+    private final SlaService slaService;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public IncidentService(IncidentRepository incidents, ITServiceRepository services,
                            CategoryRepository categories, TechnicianRepository technicians,
-                           IncidentFactory incidentFactory, ApplicationEventPublisher events, Clock clock) {
+                           IncidentFactory incidentFactory, PriorityService priorityService, SlaService slaService,
+                           ApplicationEventPublisher events, Clock clock) {
         this.incidents = incidents;
         this.services = services;
         this.categories = categories;
         this.technicians = technicians;
         this.incidentFactory = incidentFactory;
+        this.priorityService = priorityService;
+        this.slaService = slaService;
         this.events = events;
         this.clock = clock;
     }
 
     // ------------------------------------------------------------------ create & view
 
-    /** An employee reports a new incident. */
-    public Incident report(User actor, Long serviceId, IncidentReport report) {
+    /**
+     * An employee reports a new incident. If they chose a category, the system classifies it straight
+     * away (priority calculated, SLA started); otherwise it waits as NEW for an administrator.
+     */
+    public Incident report(User actor, Long serviceId, Long categoryId, IncidentReport report) {
         if (!(actor instanceof Employee reporter)) {
             throw new UnauthorizedOperationException("Only employees can report incidents");
         }
         ITService service = services.findById(serviceId).orElseThrow(() -> new ServiceNotFoundException(serviceId));
+        Category category = categoryId == null ? null : findCategory(categoryId);
         IncidentNumber number = IncidentNumber.next(incidents.findMaxSequenceNo());
         Incident incident = incidents.save(incidentFactory.create(number, report, reporter, service));
         publish(IncidentEventType.CREATED, incident, null, actor,
                 "Reported by " + actor.getUsername() + " for service " + service.getName());
+        if (category != null) {
+            applyClassification(incident, category, null); // automatic, done by the system
+        }
         return incident;
     }
 
@@ -132,19 +152,40 @@ public class IncidentService {
 
     // ------------------------------------------------------------------ classify & assign
 
-    /**
-     * Sets category and priority. Called by an administrator now; Milestone 4 adds automatic
-     * classification with a PriorityStrategy right after an incident is reported.
-     */
-    public Incident classify(String incidentNumber, Long categoryId, Priority priority, String explanation,
-                             User actor) {
+    /** An administrator classifies (or reclassifies) an incident; priority is always calculated. */
+    public Incident classify(String incidentNumber, Long categoryId, User actor) {
         requireAdmin(actor, "classify incidents");
         Incident incident = find(incidentNumber);
-        Category category = categories.findById(categoryId).orElseThrow(() -> new CategoryNotFoundException(categoryId));
+        applyClassification(incident, findCategory(categoryId), actor);
+        return incident;
+    }
+
+    /** Category + calculated priority (active PriorityStrategy) + matching SLA policy. */
+    private void applyClassification(Incident incident, Category category, User actor) {
+        PriorityResult result = priorityService.calculate(PriorityInput.from(incident));
+        SlaPolicy policy = slaService.policyFor(incident.getService(), result.priority());
         IncidentStatus before = incident.getStatus();
-        incident.classify(category, priority, explanation);
+        incident.classify(category, result.priority(), result.explanation(), policy);
         publish(IncidentEventType.CLASSIFIED, incident, before, actor,
-                "Classified as " + category.getName() + ", priority " + priority.display());
+                "Classified as " + category.getName() + ", " + result.explanation());
+    }
+
+    /**
+     * The reporter or an administrator changes impact/urgency; priority and SLA deadlines are
+     * recalculated.
+     */
+    public Incident updateImpactAndUrgency(String incidentNumber, Impact impact, Urgency urgency, User actor) {
+        Incident incident = find(incidentNumber);
+        requireReporterOrAdmin(incident, actor, "change the impact of");
+        Priority oldPriority = incident.getPriority();
+        PriorityResult result = priorityService.calculate(PriorityInput.from(incident).with(impact, urgency));
+        SlaPolicy policy = slaService.policyFor(incident.getService(), result.priority());
+        SlaStatus slaBefore = incident.getSlaRecord().getStatus();
+        boolean changed = incident.reprioritise(impact, urgency, result.priority(), result.explanation(), policy);
+        publish(IncidentEventType.PRIORITY_CHANGED, incident, incident.getStatus(), actor,
+                changed ? "Priority changed from " + oldPriority + ": " + result.explanation()
+                        : "Impact/urgency updated, priority unchanged: " + result.explanation());
+        publishIfSlaNewlyBreached(incident, slaBefore);
         return incident;
     }
 
@@ -181,8 +222,10 @@ public class IncidentService {
         Incident incident = find(incidentNumber);
         requireAssignee(incident, actor, "acknowledge");
         IncidentStatus before = incident.getStatus();
-        incident.acknowledge();
+        SlaStatus slaBefore = incident.getSlaRecord().getStatus();
+        incident.acknowledge(now());
         publish(IncidentEventType.ACKNOWLEDGED, incident, before, actor, null);
+        publishIfSlaNewlyBreached(incident, slaBefore);
         return incident;
     }
 
@@ -208,8 +251,10 @@ public class IncidentService {
         Incident incident = find(incidentNumber);
         Technician technician = requireAssignee(incident, actor, "resolve");
         IncidentStatus before = incident.getStatus();
+        SlaStatus slaBefore = incident.getSlaRecord().getStatus();
         incident.resolve(new Resolution(summary, rootCause, technician, now()));
         publish(IncidentEventType.RESOLVED, incident, before, actor, summary);
+        publishIfSlaNewlyBreached(incident, slaBefore);
         return incident;
     }
 
@@ -262,8 +307,10 @@ public class IncidentService {
         Incident incident = find(incidentNumber);
         requireReporter(incident, actor, "reopen");
         IncidentStatus before = incident.getStatus();
+        SlaStatus slaBefore = incident.getSlaRecord().getStatus();
         incident.reopen(actor, reason, now());
         publish(IncidentEventType.REOPENED, incident, before, actor, reason);
+        publishIfSlaNewlyBreached(incident, slaBefore);
         return incident;
     }
 
@@ -277,6 +324,18 @@ public class IncidentService {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /** Publishes SLA_VIOLATED (by the system) if the last action pushed the incident into breach. */
+    private void publishIfSlaNewlyBreached(Incident incident, SlaStatus before) {
+        if (before != SlaStatus.BREACHED && incident.getSlaRecord().getStatus() == SlaStatus.BREACHED) {
+            publish(IncidentEventType.SLA_VIOLATED, incident, incident.getStatus(), null,
+                    "SLA breached for " + incident.getPriority() + " incident");
+        }
+    }
+
+    private Category findCategory(Long categoryId) {
+        return categories.findById(categoryId).orElseThrow(() -> new CategoryNotFoundException(categoryId));
+    }
 
     private Incident find(String incidentNumber) {
         IncidentNumber number = IncidentNumber.parse(incidentNumber);

@@ -37,3 +37,18 @@ Coverage required by the brief: normal ops, boundary conditions, invalid inputs,
 | TC31 | Assignment | Exception | Assign to an unavailable technician | `TechnicianUnavailableException` | IncidentServiceTest#assign_toUnavailableTechnician_isRejected | Pass |
 | TC32 | Assignment | Boundary | Assign to a technician already at max workload (1/1) | `WorkloadExceededException` | IncidentServiceTest#assign_beyondMaxWorkload_isRejected | Pass |
 | TC33 | Incidents | Exception | View INC9999 (does not exist) | `IncidentNotFoundException` | IncidentServiceTest#unknownIncidentNumber_isNotFound | Pass |
+| TC34 | Priority | Business rule | Plan examples: payment outage, VPN, email, HR portal | P1, P2, P3, P4 | PriorityStrategyTest#weighted_planExamples | Pass |
+| TC35 | Priority | Boundary | Scores 30 / 29.9 / 15 / 14.9 / 6 / 5.9 | P1 / P2 / P2 / P3 / P3 / P4 | PriorityStrategyTest#weighted_thresholdBoundaries | Pass |
+| TC36 | Priority | Boundary | Affected users 9 / 10 / 99 / 100 / 999 / 1000 | Factor 1.0 / 1.2 / 1.2 / 1.5 / 1.5 / 2.0 | PriorityStrategyTest#weighted_affectedUsersFactorBoundaries | Pass |
+| TC37 | Priority | Normal | All 9 impact × urgency combinations (matrix strategy) | Matches the ITIL matrix | PriorityStrategyTest#matrix_fullTable | Pass |
+| TC38 | Priority | Business rule | Same input, two strategies | Weighted gives P1, matrix gives P3 (interchangeable algorithms) | PriorityStrategyTest#strategiesAreInterchangeable_samInputDifferentAnswer | Pass |
+| TC39 | Priority | Invalid input | Configured strategy name "magic" | Start-up fails with a clear message | PriorityStrategyTest#priorityService_rejectsUnknownStrategyName | Pass |
+| TC40 | SLA | Boundary | Response exactly at the 5-minute deadline | Not a breach (ON_TRACK) | SlaRecordTest#responseExactlyAtDeadline_isNotABreach | Pass |
+| TC41 | SLA | Boundary | Response 1 second after the deadline | BREACHED | SlaRecordTest#responseOneSecondLate_isABreach | Pass |
+| TC42 | SLA | Business rule | Late response, then resolved in time | Stays BREACHED (breach is permanent) | SlaRecordTest#breachIsPermanent_evenIfResolvedInTimeLater | Pass |
+| TC43 | SLA | Business rule | Deadline passes, checked repeatedly | Breach reported only once | SlaRecordTest#checkBreach_reportsOnlyOnce | Pass |
+| TC44 | Classification | Normal | Employee reports with a category | Auto-classified P1, deadlines +5 min / +30 min, CLASSIFIED event by "system" | IncidentServiceTest#report_withCategory_isAutoClassifiedAsP1WithSlaDeadlines | Pass |
+| TC45 | SLA | Exception | Classify with no SLA policy configured | `MissingSlaConfigurationException` | IncidentServiceTest#classify_withoutAnySlaPolicy_throwsMissingSlaConfiguration | Pass |
+| TC46 | Priority | Normal | Reporter lowers impact and urgency to LOW | Priority P3, new 8 h deadline, PRIORITY_CHANGED event | IncidentServiceTest#lowerImpactAndUrgency_recalculatesPriorityAndDeadlines | Pass |
+| TC47 | SLA | Exception | Technician acknowledges 6 minutes after a P1 is reported | SLA BREACHED, SLA_VIOLATED event published | IncidentServiceTest#acknowledgeAfterResponseTarget_breachesSlaAndPublishesViolation | Pass |
+| TC48 | SLA | Normal | Resolved 20 minutes into a 30-minute window | SLA MET | IncidentServiceTest#resolveWithinTarget_marksSlaMet | Pass |

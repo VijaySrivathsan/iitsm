@@ -9,6 +9,7 @@ import com.iitsm.domain.incident.IncidentReport;
 import com.iitsm.domain.incident.IncidentStatus;
 import com.iitsm.domain.incident.Priority;
 import com.iitsm.domain.incident.Urgency;
+import com.iitsm.domain.sla.SlaStatus;
 import com.iitsm.domain.user.Administrator;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
@@ -16,9 +17,16 @@ import com.iitsm.event.IncidentEvent;
 import com.iitsm.event.IncidentEventType;
 import com.iitsm.exception.IncidentNotFoundException;
 import com.iitsm.exception.InvalidStateTransitionException;
+import com.iitsm.exception.MissingSlaConfigurationException;
 import com.iitsm.exception.TechnicianUnavailableException;
 import com.iitsm.exception.UnauthorizedOperationException;
 import com.iitsm.exception.WorkloadExceededException;
+import com.iitsm.priority.MatrixPriorityStrategy;
+import com.iitsm.priority.PriorityService;
+import com.iitsm.priority.WeightedScoringPriorityStrategy;
+import com.iitsm.repository.SlaPolicyRepository;
+import com.iitsm.sla.SlaService;
+import com.iitsm.support.MutableClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,35 +38,40 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 
-import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.groups.Tuple.tuple;
 
 /**
- * IncidentService against a real (H2) database: authorisation rules, persistence and the events
- * published for the Observer pattern.
+ * IncidentService against a real (H2) database: authorisation rules, automatic classification,
+ * SLA tracking, persistence and the events published for the Observer pattern.
  */
 @DataJpaTest
-@Import({IncidentService.class, IncidentFactory.class, IncidentServiceTest.FixedClock.class})
+@Import({IncidentService.class, IncidentFactory.class, PriorityService.class,
+        WeightedScoringPriorityStrategy.class, MatrixPriorityStrategy.class, SlaService.class,
+        IncidentServiceTest.TestClock.class})
 @RecordApplicationEvents
 class IncidentServiceTest {
 
     static final Instant NOW = Instant.parse("2026-11-06T10:00:00Z");
 
     @TestConfiguration
-    static class FixedClock {
+    static class TestClock {
         @Bean
-        Clock clock() {
-            return Clock.fixed(NOW, ZoneOffset.UTC);
+        MutableClock clock() {
+            return new MutableClock(NOW);
         }
     }
 
     @Autowired private IncidentService service;
+    @Autowired private SlaService slaService;
+    @Autowired private SlaPolicyRepository slaPolicies;
     @Autowired private TestEntityManager em;
     @Autowired private ApplicationEvents events;
+    @Autowired private MutableClock clock;
 
     private Employee emp1;
     private Employee emp2;
@@ -70,6 +83,8 @@ class IncidentServiceTest {
 
     @BeforeEach
     void setUp() {
+        clock.set(NOW);
+        slaService.ensureDefaultPolicies();
         emp1 = em.persist(new Employee("emp1", "h", "Asha Rao", null, null, "Finance"));
         emp2 = em.persist(new Employee("emp2", "h", "Rahul Mehta", null, null, "Sales"));
         tech1 = em.persist(new Technician("tech1", "h", "Karan Shah", null, null, 1, 4));
@@ -79,22 +94,23 @@ class IncidentServiceTest {
         application = em.persist(new Category("Application", null, null));
     }
 
-    private Incident reportPaymentOutage(Employee reporter) {
-        return service.report(reporter, payment.getId(), new IncidentReport("Payment app down",
+    private Incident reportPaymentOutage(Employee reporter, Long categoryId) {
+        return service.report(reporter, payment.getId(), categoryId, new IncidentReport("Payment app down",
                 "Users cannot complete transactions", Impact.HIGH, Urgency.HIGH, 500));
     }
 
     private String classifiedAndAssignedTo(Technician tech) {
-        String number = reportPaymentOutage(emp1).getNumber().toString();
-        service.classify(number, application.getId(), Priority.P1, null, admin);
+        String number = reportPaymentOutage(emp1, application.getId()).getNumber().toString();
         service.assign(number, tech.getId(), admin);
         return number;
     }
 
+    // ---------------------------------------------------------------- reporting & classification
+
     @Test
-    void report_byEmployee_createsNumberedNewIncidentAndPublishesEvent() {
-        Incident first = reportPaymentOutage(emp1);
-        Incident second = reportPaymentOutage(emp2);
+    void report_withoutCategory_createsNumberedNewIncident() {
+        Incident first = reportPaymentOutage(emp1, null);
+        Incident second = reportPaymentOutage(emp2, null);
 
         assertThat(first.getNumber()).hasToString("INC1001");
         assertThat(second.getNumber()).hasToString("INC1002");
@@ -102,17 +118,93 @@ class IncidentServiceTest {
         assertThat(first.getCreatedAt()).isEqualTo(NOW);
         assertThat(events.stream(IncidentEvent.class))
                 .extracting(IncidentEvent::type, IncidentEvent::actor)
-                .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple(IncidentEventType.CREATED, "emp1"),
-                        org.assertj.core.groups.Tuple.tuple(IncidentEventType.CREATED, "emp2"));
+                .containsExactly(tuple(IncidentEventType.CREATED, "emp1"), tuple(IncidentEventType.CREATED, "emp2"));
+    }
+
+    @Test
+    void report_withCategory_isAutoClassifiedAsP1WithSlaDeadlines() {
+        Incident incident = reportPaymentOutage(emp1, application.getId());
+
+        assertThat(incident.getStatus()).isEqualTo(IncidentStatus.CLASSIFIED);
+        assertThat(incident.getPriority()).isEqualTo(Priority.P1);
+        assertThat(incident.getPriorityExplanation()).contains("67.5");
+        assertThat(incident.getSlaRecord().getStatus()).isEqualTo(SlaStatus.ON_TRACK);
+        assertThat(incident.getSlaRecord().getResponseDue()).isEqualTo(NOW.plus(Duration.ofMinutes(5)));
+        assertThat(incident.getSlaRecord().getResolutionDue()).isEqualTo(NOW.plus(Duration.ofMinutes(30)));
+        assertThat(events.stream(IncidentEvent.class))
+                .extracting(IncidentEvent::type, IncidentEvent::actor)
+                .containsExactly(tuple(IncidentEventType.CREATED, "emp1"),
+                        tuple(IncidentEventType.CLASSIFIED, IncidentEvent.SYSTEM));
     }
 
     @Test
     void report_byTechnician_isUnauthorized() {
-        assertThatThrownBy(() -> service.report(tech1, payment.getId(),
+        assertThatThrownBy(() -> service.report(tech1, payment.getId(), null,
                 new IncidentReport("x", "y", null, null, null)))
                 .isInstanceOf(UnauthorizedOperationException.class);
     }
+
+    @Test
+    void adminClassify_usesCalculatedPriority() {
+        String number = reportPaymentOutage(emp1, null).getNumber().toString();
+        Incident incident = service.classify(number, application.getId(), admin);
+        assertThat(incident.getPriority()).isEqualTo(Priority.P1);
+        assertThat(incident.getCategory()).isEqualTo(application);
+    }
+
+    @Test
+    void classify_withoutAnySlaPolicy_throwsMissingSlaConfiguration() {
+        slaPolicies.deleteAll();
+        String number = reportPaymentOutage(emp1, null).getNumber().toString();
+        assertThatThrownBy(() -> service.classify(number, application.getId(), admin))
+                .isInstanceOf(MissingSlaConfigurationException.class);
+    }
+
+    @Test
+    void lowerImpactAndUrgency_recalculatesPriorityAndDeadlines() {
+        String number = reportPaymentOutage(emp1, application.getId()).getNumber().toString();
+
+        Incident incident = service.updateImpactAndUrgency(number, Impact.LOW, Urgency.LOW, emp1);
+
+        // LOW x LOW x 5 = 5, x 1.5 = 7.5 -> P3 (1h / 8h)
+        assertThat(incident.getPriority()).isEqualTo(Priority.P3);
+        assertThat(incident.getSlaRecord().getResolutionDue()).isEqualTo(NOW.plus(Duration.ofHours(8)));
+        assertThat(events.stream(IncidentEvent.class)).extracting(IncidentEvent::type)
+                .contains(IncidentEventType.PRIORITY_CHANGED);
+    }
+
+    // ---------------------------------------------------------------- SLA
+
+    @Test
+    void acknowledgeWithinResponseTarget_keepsSlaOnTrack() {
+        String number = classifiedAndAssignedTo(tech2);
+        clock.advance(Duration.ofMinutes(5)); // exactly at the deadline: still on time
+        Incident incident = service.acknowledge(number, tech2);
+        assertThat(incident.getSlaRecord().getStatus()).isEqualTo(SlaStatus.ON_TRACK);
+        assertThat(incident.getSlaRecord().getRespondedAt()).isEqualTo(NOW.plus(Duration.ofMinutes(5)));
+    }
+
+    @Test
+    void acknowledgeAfterResponseTarget_breachesSlaAndPublishesViolation() {
+        String number = classifiedAndAssignedTo(tech2);
+        clock.advance(Duration.ofMinutes(6));
+        Incident incident = service.acknowledge(number, tech2);
+        assertThat(incident.getSlaRecord().getStatus()).isEqualTo(SlaStatus.BREACHED);
+        assertThat(events.stream(IncidentEvent.class)).extracting(IncidentEvent::type)
+                .endsWith(IncidentEventType.ACKNOWLEDGED, IncidentEventType.SLA_VIOLATED);
+    }
+
+    @Test
+    void resolveWithinTarget_marksSlaMet() {
+        String number = classifiedAndAssignedTo(tech2);
+        service.acknowledge(number, tech2);
+        service.startWork(number, tech2);
+        clock.advance(Duration.ofMinutes(20));
+        Incident incident = service.resolve(number, "Restarted service", null, tech2);
+        assertThat(incident.getSlaRecord().getStatus()).isEqualTo(SlaStatus.MET);
+    }
+
+    // ---------------------------------------------------------------- lifecycle & authorisation
 
     @Test
     void fullLifecycle_publishesOneEventPerStep() {
@@ -153,7 +245,7 @@ class IncidentServiceTest {
 
     @Test
     void employee_cannotViewSomeoneElsesIncident_butAdminCan() {
-        String number = reportPaymentOutage(emp1).getNumber().toString();
+        String number = reportPaymentOutage(emp1, null).getNumber().toString();
         assertThatThrownBy(() -> service.view(number, emp2)).isInstanceOf(UnauthorizedOperationException.class);
         assertThat(service.view(number, admin).getNumber()).hasToString(number);
         assertThat(service.view(number, emp1).getNumber()).hasToString(number);
@@ -161,7 +253,7 @@ class IncidentServiceTest {
 
     @Test
     void closingANewIncident_isAnInvalidTransition() {
-        String number = reportPaymentOutage(emp1).getNumber().toString();
+        String number = reportPaymentOutage(emp1, null).getNumber().toString();
         assertThatThrownBy(() -> service.close(number, null, admin))
                 .isInstanceOf(InvalidStateTransitionException.class);
     }
@@ -169,8 +261,7 @@ class IncidentServiceTest {
     @Test
     void assign_toUnavailableTechnician_isRejected() {
         tech2.markUnavailable();
-        String number = reportPaymentOutage(emp1).getNumber().toString();
-        service.classify(number, application.getId(), Priority.P1, null, admin);
+        String number = reportPaymentOutage(emp1, application.getId()).getNumber().toString();
         assertThatThrownBy(() -> service.assign(number, tech2.getId(), admin))
                 .isInstanceOf(TechnicianUnavailableException.class);
     }
@@ -178,8 +269,7 @@ class IncidentServiceTest {
     @Test
     void assign_beyondMaxWorkload_isRejected() {
         classifiedAndAssignedTo(tech1); // tech1 max workload is 1, now full
-        String second = reportPaymentOutage(emp2).getNumber().toString();
-        service.classify(second, application.getId(), Priority.P2, null, admin);
+        String second = reportPaymentOutage(emp2, application.getId()).getNumber().toString();
         assertThatThrownBy(() -> service.assign(second, tech1.getId(), admin))
                 .isInstanceOf(WorkloadExceededException.class);
     }

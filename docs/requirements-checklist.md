@@ -5,7 +5,7 @@ Tick these off as milestones land. Milestone in brackets.
 ## MVP (mandatory — 60 marks rides on these)
 - [ ] Users: Employee, Technician, Administrator; register/login [M2, M7]
 - [ ] Incidents: create, view, update, assign, resolve, close [M3, M7]
-- [ ] Priority from impact × urgency × business criticality (+ affected users) → P1–P4 [M4]
+- [x] Priority from impact × urgency × business criticality (+ affected users) → P1–P4 [M4]
 - [ ] ≥2 technician assignment strategies, switchable by admin at runtime [M5]
 - [ ] SLA: per service/priority policy, deadlines, response + resolution tracking, warnings, violation detection & recording [M4, M8]
 - [ ] ≥2 notification mechanisms (simulated OK): in-app + email (+ SMS stretch) [M6]

@@ -20,5 +20,8 @@ server:
   port: 8080
 
 itsm:
+  priority:
+    # Which PriorityStrategy to use: weighted (default) or matrix
+    strategy: weighted
   sla:
     monitor-interval: PT60S

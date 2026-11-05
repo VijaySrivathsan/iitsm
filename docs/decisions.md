@@ -45,4 +45,16 @@ Why: each class has a single reason to change. A new state is one new class plus
 Alternatives: a hand-written listener list inside `IncidentService`, or calling audit and notification code directly.
 Why: Spring already provides a well-tested publish/subscribe mechanism. `IncidentService` only publishes an immutable `IncidentEvent` and doesn't know who listens, so audit (M6), notifications (M6) and escalation (M8) can be added without changing it.
 
-<!-- Add new entries below (D11, D12, ...) -->
+## D11. Priority as a Strategy, selected by configuration
+Alternatives: one hard-coded formula inside `IncidentService`.
+Why: the brief explicitly allows teams to choose their own algorithm. `WeightedScoringPriorityStrategy` (default) and `MatrixPriorityStrategy` (ITIL matrix) share one interface, and `PriorityService` picks the one named in `itsm.priority.strategy`. A new algorithm, such as one based on historical data, is one new `@Component`. Every result carries an explanation string, so users can see why an incident is P1.
+
+## D12. SLA rules live in `SlaRecord`; `Incident` drives them
+Alternatives: a separate service that edits SLA fields from outside.
+Why: SLA timing is part of the incident's own state. `Incident.acknowledge()` records the response time and `Incident.resolve()` records the resolution time automatically, so no caller can forget. `SlaService` only chooses *which* policy applies (the service's own, else the default). The rules: meeting a deadline exactly on time is not a breach, a breach is permanent, and it is reported only once.
+Known limitation: the SLA clock keeps running while the incident waits for the reporter (PENDING_INFO).
+
+## D13. Classification happens automatically when the reporter picks a category
+If the employee chooses a category when reporting, the system classifies the incident at once (priority calculated, SLA started), and the audit trail records the actor as `system`. Otherwise it stays NEW until an administrator picks a category. Either way the priority is always calculated, never typed in by hand.
+
+<!-- Add new entries below (D14, D15, ...) -->

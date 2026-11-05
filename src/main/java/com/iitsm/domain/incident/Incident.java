@@ -6,7 +6,9 @@ import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.catalog.ITService;
 import com.iitsm.domain.incident.state.IncidentState;
 import com.iitsm.domain.incident.state.IncidentStateRegistry;
+import com.iitsm.domain.sla.SlaPolicy;
 import com.iitsm.domain.sla.SlaRecord;
+import com.iitsm.exception.InvalidStateTransitionException;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
 import com.iitsm.domain.user.User;
@@ -176,13 +178,52 @@ public class Incident extends BaseEntity {
         return currentState().allows(operation);
     }
 
-    /** Sets category and priority (NEW -> CLASSIFIED, or reclassification while CLASSIFIED). */
-    public void classify(Category category, Priority priority, String priorityExplanation) {
+    /**
+     * Sets category and priority and starts the SLA clock from the report time
+     * (NEW -> CLASSIFIED, or reclassification while CLASSIFIED).
+     */
+    public void classify(Category category, Priority priority, String priorityExplanation, SlaPolicy slaPolicy) {
         IncidentStatus next = currentState().classify();
-        this.category = Checks.requireNonNull(category, "Category");
-        this.priority = Checks.requireNonNull(priority, "Priority");
+        Checks.requireNonNull(category, "Category");
+        Checks.requireNonNull(priority, "Priority");
+        Checks.requireNonNull(slaPolicy, "SLA policy");
+        this.category = category;
+        this.priority = priority;
         this.priorityExplanation = Checks.optionalText(priorityExplanation);
+        this.slaRecord.start(createdAt, slaPolicy.responseTarget(), slaPolicy.resolutionTarget());
         this.status = next;
+    }
+
+    /**
+     * Changes impact/urgency after classification and applies the recalculated priority and SLA.
+     * Allowed only while the incident is open and already classified. Does not change the status.
+     *
+     * @return true if the priority actually changed
+     */
+    public boolean reprioritise(Impact newImpact, Urgency newUrgency, Priority newPriority, String explanation,
+                                SlaPolicy slaPolicy) {
+        if (status == IncidentStatus.NEW || !status.isOpen()) {
+            throw new InvalidStateTransitionException(status, IncidentOperation.CLASSIFY);
+        }
+        Checks.requireNonNull(newPriority, "Priority");
+        Checks.requireNonNull(slaPolicy, "SLA policy");
+        this.impact = Checks.requireNonNull(newImpact, "Impact");
+        this.urgency = Checks.requireNonNull(newUrgency, "Urgency");
+        boolean changed = newPriority != this.priority;
+        this.priority = newPriority;
+        this.priorityExplanation = Checks.optionalText(explanation);
+        this.slaRecord.start(createdAt, slaPolicy.responseTarget(), slaPolicy.resolutionTarget());
+        return changed;
+    }
+
+    /** Re-checks SLA deadlines against the current time. Returns true when a breach is first detected. */
+    public boolean checkSlaBreach(Instant now) {
+        return status.isOpen() && slaRecord.checkBreach(now);
+    }
+
+    /** Flags the incident as at risk of breaching. Returns true the first time (one warning only). */
+    public boolean markSlaAtRisk() {
+        return status.isOpen() && slaRecord.markAtRisk();
     }
 
     /** Assigns or reassigns a technician. */
@@ -192,8 +233,11 @@ public class Incident extends BaseEntity {
         this.status = next;
     }
 
-    public void acknowledge() {
-        this.status = currentState().acknowledge();
+    /** Technician accepts the incident; this is the moment the SLA response time is measured. */
+    public void acknowledge(Instant at) {
+        IncidentStatus next = currentState().acknowledge();
+        slaRecord.recordResponse(Checks.requireNonNull(at, "Acknowledgement time"));
+        this.status = next;
     }
 
     public void startWork() {
@@ -217,6 +261,7 @@ public class Incident extends BaseEntity {
     public void resolve(Resolution resolution) {
         IncidentStatus next = currentState().resolve();
         this.resolution = Checks.requireNonNull(resolution, "Resolution");
+        slaRecord.recordResolution(resolution.getResolvedAt());
         this.status = next;
     }
 
@@ -232,6 +277,7 @@ public class Incident extends BaseEntity {
         IncidentStatus next = currentState().reopen();
         addNote(by, NoteType.INFO_RESPONSE, "Reopened: " + Checks.requireText(reason, "Reopen reason"), at);
         this.resolution = null;
+        slaRecord.reopen(at);
         this.status = next;
     }
 

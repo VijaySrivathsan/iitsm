@@ -2,6 +2,7 @@ package com.iitsm.domain.incident;
 
 import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.catalog.ITService;
+import com.iitsm.domain.sla.SlaPolicy;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
 import com.iitsm.exception.InvalidStateTransitionException;
@@ -18,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class IncidentLifecycleTest {
 
     private static final Instant NOW = Instant.parse("2026-11-06T10:00:00Z");
+    private static final SlaPolicy POLICY = SlaPolicy.defaultFor(Priority.P1, 5, 30);
 
     private final Employee reporter = new Employee("emp1", "hash", "Asha Rao", null, null, "Finance");
     private final Technician tech = new Technician("tech1", "hash", "Karan Shah", null, null, 5, 4);
@@ -31,9 +33,9 @@ class IncidentLifecycleTest {
     @Test
     void happyPath_reportToClose() {
         Incident incident = newIncident();
-        incident.classify(application, Priority.P1, "score 67.5");
+        incident.classify(application, Priority.P1, "score 67.5", POLICY);
         incident.assignTo(tech);
-        incident.acknowledge();
+        incident.acknowledge(NOW);
         incident.startWork();
         incident.requestInfo(tech, "Which browser?", NOW);
         incident.provideInfo(reporter, "Chrome", NOW);
@@ -69,9 +71,9 @@ class IncidentLifecycleTest {
     @Test
     void reopen_discardsOldResolutionAndRecordsReason() {
         Incident incident = newIncident();
-        incident.classify(application, Priority.P2, null);
+        incident.classify(application, Priority.P2, null, POLICY);
         incident.assignTo(tech);
-        incident.acknowledge();
+        incident.acknowledge(NOW);
         incident.startWork();
         incident.resolve(new Resolution("Cleared cache", null, tech, NOW));
 
@@ -87,7 +89,7 @@ class IncidentLifecycleTest {
     void allowedOperations_followCurrentState() {
         Incident incident = newIncident();
         assertThat(incident.allowedOperations()).containsExactly(IncidentOperation.CLASSIFY);
-        incident.classify(application, Priority.P3, null);
+        incident.classify(application, Priority.P3, null, POLICY);
         assertThat(incident.allowedOperations())
                 .containsExactlyInAnyOrder(IncidentOperation.CLASSIFY, IncidentOperation.ASSIGN);
     }
