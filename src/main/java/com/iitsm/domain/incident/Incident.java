@@ -4,6 +4,8 @@ import com.iitsm.domain.BaseEntity;
 import com.iitsm.domain.Checks;
 import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.catalog.ITService;
+import com.iitsm.domain.incident.state.IncidentState;
+import com.iitsm.domain.incident.state.IncidentStateRegistry;
 import com.iitsm.domain.sla.SlaRecord;
 import com.iitsm.domain.user.Employee;
 import com.iitsm.domain.user.Technician;
@@ -24,6 +26,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The central aggregate: one reported IT problem and everything that happens to it.
@@ -37,8 +40,8 @@ import java.util.List;
  *       the incident.</li>
  * </ul>
  *
- * <p>There are no public setters. Lifecycle operations (classify, assign, resolve, ...) are added in
- * Milestone 3 and delegate to the State pattern, so illegal transitions are impossible.
+ * <p>There are no public setters. Lifecycle operations (classify, assign, resolve, ...) delegate to
+ * the State pattern ({@link IncidentState}), so illegal transitions are impossible.
  */
 @Entity
 @Table(name = "incident")
@@ -152,6 +155,91 @@ public class Incident extends BaseEntity {
         InvestigationNote note = new InvestigationNote(author, type, text, at);
         notes.add(note);
         return note;
+    }
+
+    // ----- lifecycle (State pattern) -----
+    // Each method first asks the current state for the next status. If the operation is illegal the
+    // state throws InvalidStateTransitionException BEFORE any field changes, so the incident is never
+    // left half-updated.
+
+    /** The State object for the current status. */
+    public IncidentState currentState() {
+        return IncidentStateRegistry.forStatus(status);
+    }
+
+    /** Operations allowed right now (e.g. to decide which buttons to show). */
+    public Set<IncidentOperation> allowedOperations() {
+        return currentState().allowedOperations();
+    }
+
+    public boolean allows(IncidentOperation operation) {
+        return currentState().allows(operation);
+    }
+
+    /** Sets category and priority (NEW -> CLASSIFIED, or reclassification while CLASSIFIED). */
+    public void classify(Category category, Priority priority, String priorityExplanation) {
+        IncidentStatus next = currentState().classify();
+        this.category = Checks.requireNonNull(category, "Category");
+        this.priority = Checks.requireNonNull(priority, "Priority");
+        this.priorityExplanation = Checks.optionalText(priorityExplanation);
+        this.status = next;
+    }
+
+    /** Assigns or reassigns a technician. */
+    public void assignTo(Technician technician) {
+        IncidentStatus next = currentState().assign();
+        this.assignee = Checks.requireNonNull(technician, "Technician");
+        this.status = next;
+    }
+
+    public void acknowledge() {
+        this.status = currentState().acknowledge();
+    }
+
+    public void startWork() {
+        this.status = currentState().startWork();
+    }
+
+    /** Technician asks the reporter a question; the question is recorded in the log. */
+    public void requestInfo(Technician technician, String question, Instant at) {
+        IncidentStatus next = currentState().requestInfo();
+        addNote(technician, NoteType.INFO_REQUEST, question, at);
+        this.status = next;
+    }
+
+    /** Reporter answers an information request; work resumes. */
+    public void provideInfo(User reporter, String answer, Instant at) {
+        IncidentStatus next = currentState().provideInfo();
+        addNote(reporter, NoteType.INFO_RESPONSE, answer, at);
+        this.status = next;
+    }
+
+    public void resolve(Resolution resolution) {
+        IncidentStatus next = currentState().resolve();
+        this.resolution = Checks.requireNonNull(resolution, "Resolution");
+        this.status = next;
+    }
+
+    /** Reporter (or admin) confirms the fix, optionally with feedback. */
+    public void verify(Feedback feedback) {
+        IncidentStatus next = currentState().verify();
+        this.feedback = feedback;
+        this.status = next;
+    }
+
+    /** Reporter says the fix did not work; the old resolution is discarded and work resumes. */
+    public void reopen(User by, String reason, Instant at) {
+        IncidentStatus next = currentState().reopen();
+        addNote(by, NoteType.INFO_RESPONSE, "Reopened: " + Checks.requireText(reason, "Reopen reason"), at);
+        this.resolution = null;
+        this.status = next;
+    }
+
+    public void close(String closureNote, Instant at) {
+        IncidentStatus next = currentState().close();
+        this.closureNote = Checks.optionalText(closureNote);
+        this.closedAt = Checks.requireNonNull(at, "Close time");
+        this.status = next;
     }
 
     /** True if the given user reported this incident. */

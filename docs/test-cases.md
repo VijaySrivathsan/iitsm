@@ -23,3 +23,17 @@ Coverage required by the brief: normal ops, boundary conditions, invalid inputs,
 | TC17 | Persistence | Normal | Find technicians by skill | Only active technicians with that skill | RepositoryTest#technicians_canBeFoundBySkill | Pass |
 | TC18 | Persistence | Normal | Look up user by username | Returns the right subtype (polymorphic query) | RepositoryTest#userLookup_isPolymorphic | Pass |
 | TC19 | SLA | Normal | Service-specific vs default SLA policy | Specific found for service, default otherwise, none for missing | RepositoryTest#slaPolicy_serviceSpecificAndDefaultLookups | Pass |
+| TC20 | Lifecycle | Business rule | Every (status, operation) pair: 9 statuses x 10 operations | 14 legal pairs reach the planned status; the other 76 throw `InvalidStateTransitionException` | IncidentStateTest#transitionTable | Pass |
+| TC21 | Lifecycle | Exception | Close a NEW incident | `InvalidStateTransitionException`: "Cannot close an incident that is NEW" | IncidentStateTest#newToClosed_isRejectedWithReadableMessage | Pass |
+| TC22 | Lifecycle | Normal | Report → classify → assign → acknowledge → start → request/provide info → resolve → verify → close | Ends CLOSED with resolution, feedback, notes | IncidentLifecycleTest#happyPath_reportToClose | Pass |
+| TC23 | Lifecycle | Business rule | Illegal operation on a NEW incident | Exception thrown and no field changed | IncidentLifecycleTest#illegalTransition_leavesIncidentUnchanged | Pass |
+| TC24 | Lifecycle | Business rule | Reporter reopens a resolved incident | Back IN_PROGRESS, old resolution cleared, reason logged | IncidentLifecycleTest#reopen_discardsOldResolutionAndRecordsReason | Pass |
+| TC25 | Incidents | Normal | Two employees report incidents | INC1001 and INC1002 created as NEW; CREATED events published | IncidentServiceTest#report_byEmployee_createsNumberedNewIncidentAndPublishesEvent | Pass |
+| TC26 | Authorization | Authorization | Technician tries to report an incident | `UnauthorizedOperationException` | IncidentServiceTest#report_byTechnician_isUnauthorized | Pass |
+| TC27 | Observer | Normal | Full lifecycle through the service | One event per step, in order, with previous and new status | IncidentServiceTest#fullLifecycle_publishesOneEventPerStep | Pass |
+| TC28 | Authorization | Authorization | Employee tries to resolve | `UnauthorizedOperationException` | IncidentServiceTest#employee_cannotResolve | Pass |
+| TC29 | Authorization | Authorization | Technician acknowledges someone else's incident | `UnauthorizedOperationException` | IncidentServiceTest#otherTechnician_cannotAcknowledge | Pass |
+| TC30 | Authorization | Authorization | Employee views another employee's incident | Rejected; reporter and admin can view | IncidentServiceTest#employee_cannotViewSomeoneElsesIncident_butAdminCan | Pass |
+| TC31 | Assignment | Exception | Assign to an unavailable technician | `TechnicianUnavailableException` | IncidentServiceTest#assign_toUnavailableTechnician_isRejected | Pass |
+| TC32 | Assignment | Boundary | Assign to a technician already at max workload (1/1) | `WorkloadExceededException` | IncidentServiceTest#assign_beyondMaxWorkload_isRejected | Pass |
+| TC33 | Incidents | Exception | View INC9999 (does not exist) | `IncidentNotFoundException` | IncidentServiceTest#unknownIncidentNumber_isNotFound | Pass |

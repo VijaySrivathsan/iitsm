@@ -33,4 +33,16 @@ Because of SINGLE_TABLE (D4), a Technician's columns are NULL for Employee rows.
 ## D8. Value objects for incident number, SLA record, resolution and feedback
 `IncidentNumber` is a record (`INC1001`), so user-facing numbers never expose database ids. `SlaRecord`, `Resolution` and `Feedback` are `@Embeddable`: they're stored in the incident row and have no identity of their own, which is exactly composition in UML.
 
-<!-- Add new entries below (D9, D10, ...) -->
+## D9. Who decides what in the incident lifecycle
+- **State objects** decide *whether* an operation is legal in the current status and *which* status comes next. They hold no data and never touch the incident's fields.
+- **`Incident`** asks its state first, then updates its own fields. If the state rejects the operation, nothing has been changed yet.
+- **`IncidentService`** decides *who* may do it (reporter, assigned technician, administrator) and publishes an event afterwards.
+
+Alternatives: one big `switch` on status inside `Incident`, or states that change the incident's fields directly.
+Why: each class has a single reason to change. A new state is one new class plus one registry line. Permission rules can change without touching the lifecycle rules, and vice versa.
+
+## D10. Domain events via Spring's `ApplicationEventPublisher` (Observer)
+Alternatives: a hand-written listener list inside `IncidentService`, or calling audit and notification code directly.
+Why: Spring already provides a well-tested publish/subscribe mechanism. `IncidentService` only publishes an immutable `IncidentEvent` and doesn't know who listens, so audit (M6), notifications (M6) and escalation (M8) can be added without changing it.
+
+<!-- Add new entries below (D11, D12, ...) -->

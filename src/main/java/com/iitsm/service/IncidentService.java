@@ -1,0 +1,323 @@
+package com.iitsm.service;
+
+import com.iitsm.domain.catalog.Category;
+import com.iitsm.domain.catalog.ITService;
+import com.iitsm.domain.incident.Feedback;
+import com.iitsm.domain.incident.Incident;
+import com.iitsm.domain.incident.IncidentFactory;
+import com.iitsm.domain.incident.IncidentNumber;
+import com.iitsm.domain.incident.IncidentReport;
+import com.iitsm.domain.incident.IncidentStatus;
+import com.iitsm.domain.incident.NoteType;
+import com.iitsm.domain.incident.Priority;
+import com.iitsm.domain.incident.Resolution;
+import com.iitsm.domain.user.Administrator;
+import com.iitsm.domain.user.Employee;
+import com.iitsm.domain.user.Technician;
+import com.iitsm.domain.user.User;
+import com.iitsm.event.IncidentEvent;
+import com.iitsm.event.IncidentEventType;
+import com.iitsm.exception.CategoryNotFoundException;
+import com.iitsm.exception.IncidentNotFoundException;
+import com.iitsm.exception.ServiceNotFoundException;
+import com.iitsm.exception.TechnicianUnavailableException;
+import com.iitsm.exception.UnauthorizedOperationException;
+import com.iitsm.exception.UserNotFoundException;
+import com.iitsm.exception.WorkloadExceededException;
+import com.iitsm.repository.CategoryRepository;
+import com.iitsm.repository.ITServiceRepository;
+import com.iitsm.repository.IncidentRepository;
+import com.iitsm.repository.TechnicianRepository;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * Application service for the incident use cases (create, view, update, assign, resolve, close).
+ *
+ * <p>Responsibilities are split deliberately:
+ * <ul>
+ *   <li>the <b>State</b> objects decide whether a transition is legal;</li>
+ *   <li>this service decides <b>who</b> may perform it (authorisation) and persists the result;</li>
+ *   <li>after every change it publishes an {@link IncidentEvent} (<b>Observer</b>) instead of calling
+ *       audit or notification code directly.</li>
+ * </ul>
+ */
+@Service
+@Transactional
+public class IncidentService {
+
+    private final IncidentRepository incidents;
+    private final ITServiceRepository services;
+    private final CategoryRepository categories;
+    private final TechnicianRepository technicians;
+    private final IncidentFactory incidentFactory;
+    private final ApplicationEventPublisher events;
+    private final Clock clock;
+
+    public IncidentService(IncidentRepository incidents, ITServiceRepository services,
+                           CategoryRepository categories, TechnicianRepository technicians,
+                           IncidentFactory incidentFactory, ApplicationEventPublisher events, Clock clock) {
+        this.incidents = incidents;
+        this.services = services;
+        this.categories = categories;
+        this.technicians = technicians;
+        this.incidentFactory = incidentFactory;
+        this.events = events;
+        this.clock = clock;
+    }
+
+    // ------------------------------------------------------------------ create & view
+
+    /** An employee reports a new incident. */
+    public Incident report(User actor, Long serviceId, IncidentReport report) {
+        if (!(actor instanceof Employee reporter)) {
+            throw new UnauthorizedOperationException("Only employees can report incidents");
+        }
+        ITService service = services.findById(serviceId).orElseThrow(() -> new ServiceNotFoundException(serviceId));
+        IncidentNumber number = IncidentNumber.next(incidents.findMaxSequenceNo());
+        Incident incident = incidents.save(incidentFactory.create(number, report, reporter, service));
+        publish(IncidentEventType.CREATED, incident, null, actor,
+                "Reported by " + actor.getUsername() + " for service " + service.getName());
+        return incident;
+    }
+
+    /** Loads an incident if the viewer is allowed to see it. */
+    @Transactional(readOnly = true)
+    public Incident view(String incidentNumber, User viewer) {
+        Incident incident = find(incidentNumber);
+        if (!canView(incident, viewer)) {
+            throw new UnauthorizedOperationException("You are not allowed to view " + incidentNumber);
+        }
+        return incident;
+    }
+
+    /** Employees see their own incidents, technicians their assigned ones (team leads see all). */
+    public boolean canView(Incident incident, User viewer) {
+        if (viewer instanceof Administrator) {
+            return true;
+        }
+        if (viewer instanceof Technician technician) {
+            return technician.isTeamLead() || incident.isAssignedTo(technician);
+        }
+        return incident.isReportedBy(viewer);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Incident> reportedBy(Employee reporter) {
+        return incidents.findByReporterOrderByCreatedAtDesc(reporter);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Incident> assignedTo(Technician technician) {
+        return incidents.findByAssigneeOrderByCreatedAtDesc(technician);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Incident> all(User actor) {
+        requireAdmin(actor, "list all incidents");
+        return incidents.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
+
+    /** Number of incidents currently occupying a technician. */
+    @Transactional(readOnly = true)
+    public long activeWorkload(Technician technician) {
+        return incidents.countByAssigneeAndStatusIn(technician, IncidentStatus.workloadStatuses());
+    }
+
+    // ------------------------------------------------------------------ classify & assign
+
+    /**
+     * Sets category and priority. Called by an administrator now; Milestone 4 adds automatic
+     * classification with a PriorityStrategy right after an incident is reported.
+     */
+    public Incident classify(String incidentNumber, Long categoryId, Priority priority, String explanation,
+                             User actor) {
+        requireAdmin(actor, "classify incidents");
+        Incident incident = find(incidentNumber);
+        Category category = categories.findById(categoryId).orElseThrow(() -> new CategoryNotFoundException(categoryId));
+        IncidentStatus before = incident.getStatus();
+        incident.classify(category, priority, explanation);
+        publish(IncidentEventType.CLASSIFIED, incident, before, actor,
+                "Classified as " + category.getName() + ", priority " + priority.display());
+        return incident;
+    }
+
+    /** An administrator assigns (or reassigns) a technician. */
+    public Incident assign(String incidentNumber, Long technicianId, User actor) {
+        requireAdmin(actor, "assign incidents");
+        Incident incident = find(incidentNumber);
+        Technician technician = technicians.findById(technicianId)
+                .orElseThrow(() -> new UserNotFoundException(technicianId));
+        checkCanTakeIncident(incident, technician);
+        IncidentStatus before = incident.getStatus();
+        incident.assignTo(technician);
+        publish(IncidentEventType.ASSIGNED, incident, before, actor, "Assigned to " + technician.getUsername());
+        return incident;
+    }
+
+    /** Rejects technicians who are unavailable or already at their maximum workload. */
+    void checkCanTakeIncident(Incident incident, Technician technician) {
+        if (!technician.isActive() || !technician.isAvailable()) {
+            throw new TechnicianUnavailableException("Technician " + technician.getUsername() + " is not available");
+        }
+        if (incident.isAssignedTo(technician)) {
+            return; // re-assigning to the same person does not add to their workload
+        }
+        long active = activeWorkload(technician);
+        if (!technician.hasCapacityFor((int) active)) {
+            throw new WorkloadExceededException(technician.getUsername(), (int) active, technician.getMaxWorkload());
+        }
+    }
+
+    // ------------------------------------------------------------------ technician work
+
+    public Incident acknowledge(String incidentNumber, User actor) {
+        Incident incident = find(incidentNumber);
+        requireAssignee(incident, actor, "acknowledge");
+        IncidentStatus before = incident.getStatus();
+        incident.acknowledge();
+        publish(IncidentEventType.ACKNOWLEDGED, incident, before, actor, null);
+        return incident;
+    }
+
+    public Incident startWork(String incidentNumber, User actor) {
+        Incident incident = find(incidentNumber);
+        requireAssignee(incident, actor, "start work on");
+        IncidentStatus before = incident.getStatus();
+        incident.startWork();
+        publish(IncidentEventType.WORK_STARTED, incident, before, actor, null);
+        return incident;
+    }
+
+    public Incident requestInfo(String incidentNumber, String question, User actor) {
+        Incident incident = find(incidentNumber);
+        Technician technician = requireAssignee(incident, actor, "request information on");
+        IncidentStatus before = incident.getStatus();
+        incident.requestInfo(technician, question, now());
+        publish(IncidentEventType.INFO_REQUESTED, incident, before, actor, question);
+        return incident;
+    }
+
+    public Incident resolve(String incidentNumber, String summary, String rootCause, User actor) {
+        Incident incident = find(incidentNumber);
+        Technician technician = requireAssignee(incident, actor, "resolve");
+        IncidentStatus before = incident.getStatus();
+        incident.resolve(new Resolution(summary, rootCause, technician, now()));
+        publish(IncidentEventType.RESOLVED, incident, before, actor, summary);
+        return incident;
+    }
+
+    // ------------------------------------------------------------------ reporter actions
+
+    public Incident provideInfo(String incidentNumber, String answer, User actor) {
+        Incident incident = find(incidentNumber);
+        requireReporter(incident, actor, "provide information on");
+        IncidentStatus before = incident.getStatus();
+        incident.provideInfo(actor, answer, now());
+        publish(IncidentEventType.INFO_PROVIDED, incident, before, actor, answer);
+        return incident;
+    }
+
+    /**
+     * Adds a note without changing status: the assigned technician adds an investigation note, the
+     * reporter adds extra information.
+     */
+    public Incident addNote(String incidentNumber, String text, User actor) {
+        Incident incident = find(incidentNumber);
+        NoteType type;
+        if (incident.isAssignedTo(actor)) {
+            type = NoteType.INVESTIGATION;
+        } else if (incident.isReportedBy(actor)) {
+            type = NoteType.INFO_RESPONSE;
+        } else {
+            throw new UnauthorizedOperationException("Only the reporter or the assigned technician can add notes");
+        }
+        if (incident.getStatus() == IncidentStatus.CLOSED) {
+            throw new UnauthorizedOperationException("Closed incidents cannot be changed");
+        }
+        incident.addNote(actor, type, text, now());
+        publish(IncidentEventType.NOTE_ADDED, incident, incident.getStatus(), actor, text);
+        return incident;
+    }
+
+    /** Reporter (or an administrator) confirms the fix. Rating is optional. */
+    public Incident verify(String incidentNumber, Integer rating, String comment, User actor) {
+        Incident incident = find(incidentNumber);
+        requireReporterOrAdmin(incident, actor, "verify");
+        IncidentStatus before = incident.getStatus();
+        Feedback feedback = rating == null ? null : new Feedback(rating, comment, now());
+        incident.verify(feedback);
+        publish(IncidentEventType.VERIFIED, incident, before, actor,
+                feedback == null ? null : "Rating " + feedback.getRating() + "/5");
+        return incident;
+    }
+
+    public Incident reopen(String incidentNumber, String reason, User actor) {
+        Incident incident = find(incidentNumber);
+        requireReporter(incident, actor, "reopen");
+        IncidentStatus before = incident.getStatus();
+        incident.reopen(actor, reason, now());
+        publish(IncidentEventType.REOPENED, incident, before, actor, reason);
+        return incident;
+    }
+
+    public Incident close(String incidentNumber, String closureNote, User actor) {
+        Incident incident = find(incidentNumber);
+        requireReporterOrAdmin(incident, actor, "close");
+        IncidentStatus before = incident.getStatus();
+        incident.close(closureNote, now());
+        publish(IncidentEventType.CLOSED, incident, before, actor, closureNote);
+        return incident;
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    private Incident find(String incidentNumber) {
+        IncidentNumber number = IncidentNumber.parse(incidentNumber);
+        return incidents.findBySequenceNo(number.sequence())
+                .orElseThrow(() -> new IncidentNotFoundException(number.toString()));
+    }
+
+    private void requireAdmin(User actor, String what) {
+        if (!(actor instanceof Administrator)) {
+            throw new UnauthorizedOperationException("Only administrators can " + what);
+        }
+    }
+
+    private Technician requireAssignee(Incident incident, User actor, String what) {
+        if (!(actor instanceof Technician technician) || !incident.isAssignedTo(technician)) {
+            throw new UnauthorizedOperationException(
+                    "Only the assigned technician can " + what + " " + incident.getNumber());
+        }
+        return technician;
+    }
+
+    private void requireReporter(Incident incident, User actor, String what) {
+        if (!incident.isReportedBy(actor)) {
+            throw new UnauthorizedOperationException("Only the reporter can " + what + " " + incident.getNumber());
+        }
+    }
+
+    private void requireReporterOrAdmin(Incident incident, User actor, String what) {
+        if (!(actor instanceof Administrator) && !incident.isReportedBy(actor)) {
+            throw new UnauthorizedOperationException(
+                    "Only the reporter or an administrator can " + what + " " + incident.getNumber());
+        }
+    }
+
+    private Instant now() {
+        return Instant.now(clock);
+    }
+
+    private void publish(IncidentEventType type, Incident incident, IncidentStatus before, User actor,
+                         String description) {
+        events.publishEvent(new IncidentEvent(type, incident.getId(), incident.getNumber().toString(),
+                before, incident.getStatus(), actor == null ? null : actor.getUsername(), description, now()));
+    }
+}

@@ -16,7 +16,7 @@ Tick these off as milestones land. Milestone in brackets.
 
 ## Lifecycle
 NEW → CLASSIFIED → ASSIGNED → ACKNOWLEDGED → IN_PROGRESS → RESOLVED → VERIFIED → CLOSED
-(+ PENDING_INFO when technician requests info; RESOLVED → IN_PROGRESS on reopen). Illegal jumps throw `InvalidStateTransitionException`. [M3]
+(+ PENDING_INFO when technician requests info; RESOLVED → IN_PROGRESS on reopen). Illegal jumps throw `InvalidStateTransitionException`. [M3] ✅ done (service layer; UI in M7)
 
 ## Role features
 - Employee: report, list own, track, add info, respond to info requests, view resolution, give feedback

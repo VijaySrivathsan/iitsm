@@ -1,5 +1,9 @@
 package com.iitsm.domain.incident;
 
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * Persisted lifecycle status of an incident. Which transitions are legal is decided by the
  * State pattern classes in {@code domain.incident.state} (Milestone 3), not by this enum.
@@ -23,5 +27,16 @@ public enum IncidentStatus {
     /** True when the incident occupies a technician and counts towards their workload. */
     public boolean countsTowardsWorkload() {
         return this == ASSIGNED || this == ACKNOWLEDGED || this == IN_PROGRESS || this == PENDING_INFO;
+    }
+
+    /** All statuses that count towards a technician's workload. */
+    public static Set<IncidentStatus> workloadStatuses() {
+        EnumSet<IncidentStatus> result = EnumSet.noneOf(IncidentStatus.class);
+        for (IncidentStatus s : values()) {
+            if (s.countsTowardsWorkload()) {
+                result.add(s);
+            }
+        }
+        return Collections.unmodifiableSet(result);
     }
 }
