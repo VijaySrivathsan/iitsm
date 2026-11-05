@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Assignment strategy')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-3">Assignment strategy</h1>
+    <p class="text-muted">Chooses who gets newly classified incidents. Takes effect immediately for the next incident.</p>
+    <div class="card" style="max-width: 720px"><div class="card-body">
+        <form th:action="@{/admin/strategy}" method="post">
+            <div class="form-check mb-3" th:each="s : ${strategies}">
+                <input class="form-check-input" type="radio" name="name" th:id="'s-' + ${s.name()}" th:value="${s.name()}" th:checked="${s.name() == active.name()}">
+                <label class="form-check-label" th:for="'s-' + ${s.name()}">
+                    <strong th:text="${s.name()}">skill</strong>
+                    <span class="badge text-bg-primary ms-1" th:if="${s.name() == active.name()}">active</span>
+                    <div class="small text-muted" th:text="${s.description()}">description</div>
+                </label>
+            </div>
+            <button class="btn btn-primary" type="submit">Use selected strategy</button>
+        </form>
+    </div></div>
+</main>
+</body>
+</html>

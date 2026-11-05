@@ -29,7 +29,7 @@ class ItsmApplicationTests {
     void homePage_isPublicAndReturns200() throws Exception {
         mockMvc.perform(get("/"))
             .andExpect(status().isOk())
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("I-ITSM is running")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Intelligent IT Service Management")));
     }
 
     @Test

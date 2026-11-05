@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Register')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="card auth-card mx-auto mt-4"><div class="card-body p-4">
+        <h1 class="h4 mb-3">Create an employee account</h1>
+        <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
+            <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" th:each="e : ${#fields.globalErrors()}" th:text="${e}">error</div>
+            <div class="mb-2">
+                <label class="form-label" for="username">Username</label>
+                <input class="form-control" th:field="*{username}" th:errorclass="is-invalid" autocomplete="username">
+                <div class="invalid-feedback" th:errors="*{username}"></div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="password">Password</label>
+                <input class="form-control" type="password" th:field="*{password}" th:errorclass="is-invalid" autocomplete="new-password">
+                <div class="invalid-feedback" th:errors="*{password}"></div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="fullName">Full name</label>
+                <input class="form-control" th:field="*{fullName}" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="*{fullName}"></div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="email">Email</label>
+                <input class="form-control" type="email" th:field="*{email}" th:errorclass="is-invalid">
+                <div class="invalid-feedback" th:errors="*{email}"></div>
+            </div>
+            <div class="row g-2 mb-3">
+                <div class="col">
+                    <label class="form-label" for="phone">Phone (optional)</label>
+                    <input class="form-control" th:field="*{phone}" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{phone}"></div>
+                </div>
+                <div class="col">
+                    <label class="form-label" for="department">Department</label>
+                    <input class="form-control" th:field="*{department}">
+                </div>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Create account</button>
+        </form>
+        <p class="mt-3 mb-0 small text-muted">Already registered? <a th:href="@{/login}">Log in</a>.</p>
+    </div></div>
+</main>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('My incidents')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">My incidents</h1>
+        <a class="btn btn-primary" th:href="@{/employee/report}"><i class="bi bi-plus-circle me-1"></i>Report an incident</a>
+    </div>
+    <div class="card"><div class="card-body p-0">
+        <div th:replace="~{fragments/layout :: incidentTable(${incidents}, false, true)}"></div>
+    </div></div>
+</main>
+</body>
+</html>

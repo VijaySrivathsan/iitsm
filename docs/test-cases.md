@@ -73,3 +73,15 @@ Coverage required by the brief: normal ops, boundary conditions, invalid inputs,
 | TC67 | Notification | Exception | No technician available for a P1 | Administrators alerted (in-app + SMS) | NotificationTest#noTechnicianAvailable_alertsAdministrators | Pass |
 | TC68 | Authorization | Authorization | Marking someone else's notification read / non-admin viewing the outbox | `UnauthorizedOperationException` | NotificationTest#inbox_unreadCountAndMarkRead, #outbox_isForAdministratorsOnly | Pass |
 | TC69 | Notification | Exception | SMS provider unreachable | Incident still created and assigned; in-app and email still delivered | FailingSmsGatewayTest#smsFailure_doesNotBreakIncidentOrOtherChannels | Pass |
+| TC70 | Security | Authorization | Anonymous user opens /employee | Redirected to the login page | WebSecurityAndFormsTest#anonymousUser_isSentToLogin | Pass |
+| TC71 | Security | Invalid input | Log in with a wrong password | Redirect to /login?error | WebSecurityAndFormsTest#wrongPassword_isRejected | Pass |
+| TC72 | Security | Normal | Log in as emp1 | Redirect to /dashboard, then to /employee | WebSecurityAndFormsTest#correctLogin_goesToRoleDashboard, #dashboard_redirectsByRole | Pass |
+| TC73 | Authorization | Authorization | Employee opens /admin; technician opens /employee/report | 403 | WebSecurityAndFormsTest#employee_cannotOpenAdminPages, #technician_cannotOpenEmployeePages | Pass |
+| TC74 | Web | Normal | Admin opens all 9 admin pages | All render (200) | WebSecurityAndFormsTest#admin_canOpenEveryAdminPage | Pass |
+| TC75 | Web | Normal | Employee submits a valid report form | Redirect to the new incident page with a success message | WebSecurityAndFormsTest#reportForm_validIncident_redirectsToItsPage | Pass |
+| TC76 | Web | Invalid input | Report form with no service, blank description, 0 users | Form shown again with field errors; nothing saved | WebSecurityAndFormsTest#reportForm_missingFields_showsErrorsAndSavesNothing | Pass |
+| TC77 | Security | Exception | Form POST without a CSRF token | 403 | WebSecurityAndFormsTest#postWithoutCsrfToken_isRejected | Pass |
+| TC78 | Users | Normal / Invalid input | Register a new employee; register with a taken username | Account created as EMPLOYEE; duplicate refused with an error | WebSecurityAndFormsTest#register_newEmployee_thenDuplicateUsernameIsRefused | Pass |
+| TC79 | Authorization | Authorization | tech2 resolves tech1's incident; emp2 views emp1's incident | 403 | WebSecurityAndFormsTest#technician_cannotResolveSomeoneElsesIncident, #employee_cannotViewAnotherEmployeesIncident | Pass |
+| TC80 | Lifecycle | Exception | Technician resolves an ASSIGNED (not started) incident via the UI | Back on the incident page with "Cannot resolve an incident that is ASSIGNED" | WebSecurityAndFormsTest#illegalTransition_comesBackAsErrorBanner | Pass |
+| TC81 | Authorization | Business rule | Actions shown for technician / reporter / admin / other employee | Each sees only what they may do; the other employee sees nothing | WebSecurityAndFormsTest#availableActions_dependOnRoleAndState | Pass |

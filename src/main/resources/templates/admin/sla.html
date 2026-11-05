@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('SLA policies')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-3">SLA policies</h1>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card"><div class="card-body p-0"><div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light"><tr><th>Applies to</th><th>Priority</th><th>Respond within</th><th>Resolve within</th><th></th></tr></thead>
+                    <tbody>
+                    <tr th:each="p : ${policies}">
+                        <td th:text="${p.isDefault()} ? 'All services (default)' : ${p.service.name}">service</td>
+                        <td><span th:replace="~{fragments/layout :: priority(${p.priority})}"></span></td>
+                        <td th:text="${p.responseMinutes} + ' min'">5 min</td>
+                        <td th:text="${p.resolutionMinutes} + ' min'">30 min</td>
+                        <td>
+                            <form th:unless="${p.isDefault()}" th:action="@{/admin/sla/{id}/delete(id=${p.id})}" method="post">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div></div></div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card"><div class="card-header">Add or change a policy</div><div class="card-body">
+                <p class="small text-muted">A service-specific policy overrides the default for that service.</p>
+                <form th:action="@{/admin/sla}" th:object="${form}" method="post" novalidate>
+                    <div class="mb-2">
+                        <label class="form-label small" for="serviceId">Service</label>
+                        <select class="form-select form-select-sm" th:field="*{serviceId}">
+                            <option value="">All services (default)</option>
+                            <option th:each="s : ${services}" th:value="${s.id}" th:text="${s.name}">s</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small" for="priority">Priority</label>
+                        <select class="form-select form-select-sm" th:field="*{priority}" th:errorclass="is-invalid">
+                            <option th:each="p : ${priorities}" th:value="${p}" th:text="${p.display()}">P1</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col">
+                            <label class="form-label small" for="responseMinutes">Respond (min)</label>
+                            <input class="form-control form-control-sm" type="number" min="1" th:field="*{responseMinutes}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{responseMinutes}"></div>
+                        </div>
+                        <div class="col">
+                            <label class="form-label small" for="resolutionMinutes">Resolve (min)</label>
+                            <input class="form-control form-control-sm" type="number" min="1" th:field="*{resolutionMinutes}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{resolutionMinutes}"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" type="submit">Save policy</button>
+                </form>
+            </div></div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

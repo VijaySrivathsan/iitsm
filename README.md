@@ -35,7 +35,15 @@ PostgreSQL demo:
 docker compose up -d
 mvn spring-boot:run -Dspring-boot.run.profiles=demo
 ```
-Then open http://localhost:8080.
+Then open http://localhost:8080 and log in with a demo account (all passwords `demo123`, local demo only):
+
+| Role | Usernames |
+|---|---|
+| Employee | `emp1`, `emp2`, `emp3` |
+| Technician | `tech1`, `tech2`, `tech3`, `lead1` (team lead) |
+| Administrator | `sysadmin`, `admin` (IT manager) |
+
+Details in [docs/demo-accounts.md](docs/demo-accounts.md). Demo data is only created on an empty database.
 
 ## Profiles
 | Profile | Database | Use |

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Notifications')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0"><i class="bi bi-bell me-1"></i>Notifications</h1>
+        <form th:action="@{/notifications/read-all}" method="post" th:if="${unreadCount > 0}">
+            <button class="btn btn-sm btn-outline-secondary" type="submit">Mark all as read</button>
+        </form>
+    </div>
+    <div class="list-group">
+        <div th:each="n : ${notifications}" class="list-group-item d-flex justify-content-between align-items-start"
+             th:classappend="${n.read} ? 'text-muted' : 'fw-semibold'">
+            <div class="me-3">
+                <div><i class="bi me-1" th:classappend="${n.read} ? 'bi-envelope-open' : 'bi-envelope-fill text-primary'"></i><span th:text="${n.subject}">subject</span></div>
+                <div class="small fw-normal text-muted" th:text="${@fmt.dateTime(n.createdAt)}">time</div>
+            </div>
+            <form th:action="@{/notifications/{id}/open(id=${n.id})}" method="post">
+                <input type="hidden" name="incident" th:value="${n.incidentNumber}">
+                <button class="btn btn-sm btn-outline-primary" type="submit" th:text="${n.incidentNumber != null} ? 'Open' : 'Mark read'">Open</button>
+            </form>
+        </div>
+        <div th:if="${#lists.isEmpty(notifications)}" class="list-group-item text-center text-muted py-4">No notifications.</div>
+    </div>
+</main>
+</body>
+</html>

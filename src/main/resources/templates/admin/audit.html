@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Audit log')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-3">Audit log</h1>
+    <form class="row g-2 mb-3" th:action="@{/admin/audit}" method="get">
+        <div class="col-md-3"><input class="form-control form-control-sm" name="actor" th:value="${actor}" placeholder="User (e.g. tech1, system)" aria-label="User"></div>
+        <div class="col-md-3"><select class="form-select form-select-sm" name="action" aria-label="Action">
+            <option value="">Any action</option>
+            <option th:each="a : ${actions}" th:value="${a}" th:text="${a.label()}" th:selected="${a.name() == action}">a</option>
+        </select></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="incident" th:value="${incident}" placeholder="Incident (e.g. INC1001)" aria-label="Incident"></div>
+        <div class="col-md-3"><button class="btn btn-sm btn-primary" type="submit">Filter</button>
+            <a class="btn btn-sm btn-link" th:href="@{/admin/audit}">Clear</a></div>
+    </form>
+    <div class="card"><div class="card-body p-0"><div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead class="table-light"><tr><th>Time</th><th>User</th><th>Action</th><th>Incident</th><th>Status change</th><th>Description</th></tr></thead>
+            <tbody>
+            <tr th:each="e : ${entries}">
+                <td class="small text-nowrap" th:text="${@fmt.dateTime(e.timestamp)}">time</td>
+                <td th:text="${e.actor}">actor</td>
+                <td><code th:text="${e.action}">ACTION</code></td>
+                <td><a th:if="${e.incidentNumber}" th:href="@{/incidents/{n}(n=${e.incidentNumber})}" th:text="${e.incidentNumber}">INC</a></td>
+                <td class="small" th:text="${e.previousStatus != null and e.previousStatus != e.newStatus} ? ${e.previousStatus} + ' → ' + ${e.newStatus} : ''">x</td>
+                <td class="small" th:text="${e.description}">d</td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(entries)}"><td colspan="6" class="text-center text-muted py-4">No matching entries.</td></tr>
+            </tbody>
+        </table>
+    </div></div></div>
+</main>
+</body>
+</html>

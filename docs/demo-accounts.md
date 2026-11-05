@@ -11,7 +11,7 @@ All passwords: `demo123`
 | Technician | `tech1` | Karan Shah | Skills: APPLICATION, DATABASE · senior |
 | Technician | `tech2` | Divya Iyer | Skills: NETWORK, CLOUD |
 | Technician | `tech3` | Arjun Das | Skills: AUTHENTICATION, SECURITY |
-| Technician (team lead) | `lead1` | Meera Pillai | Escalation level 1 |
+| Technician (team lead) | `lead1` | Meera Pillai | Escalation level 1 · skills APPLICATION, NETWORK, HARDWARE, SOFTWARE, STORAGE · experience 4, so `tech1` wins Application incidents |
 | Administrator | `sysadmin` | Vikram Rao | System administrator; escalation level 2 |
 | Administrator (IT manager) | `admin` | Anita Menon | IT manager (`itManager` flag); escalation level 3; config screens |
 

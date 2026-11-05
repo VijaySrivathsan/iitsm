@@ -9,7 +9,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    open-in-view: false
+    # Keep the persistence context open while Thymeleaf renders, so lazy collections
+    # (notes, skills) can be shown. Standard for server-rendered apps; see docs/decisions.md D18.
+    open-in-view: true
   h2:
     console:
       enabled: false
@@ -20,6 +22,9 @@ server:
   port: 8080
 
 itsm:
+  # Create demo accounts, services and categories on an empty database (bootstrap.DemoDataLoader)
+  demo-data:
+    enabled: true
   priority:
     # Which PriorityStrategy to use: weighted (default) or matrix
     strategy: weighted

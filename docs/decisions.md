@@ -83,4 +83,15 @@ Alternative considered: `@TransactionalEventListener(AFTER_COMMIT)` with asynchr
 - **Channels per role:** configurable via `itsm.notifications.channels.<ROLE>`. By default employees get in-app and email; technicians and administrators also get SMS for urgent messages.
 Adding a push channel = one `NotificationChannel` class + one `ChannelType` value. No existing class changes.
 
-<!-- Add new entries below (D18, D19, ...) -->
+## D18. Web layer: three lines of security, thin controllers, open-session-in-view
+- **Security in depth:**
+  1. URL rules per role in `SecurityConfig` (`/employee/**`, `/tech/**`, `/admin/**`).
+  2. `@PreAuthorize("hasRole('ADMIN')")` on administration service methods.
+  3. Ownership checks in `IncidentService` (own incident, assigned incident).
+  Passwords use BCrypt, CSRF protection is on for every form, Bean Validation guards all input, and the H2 console is reachable only in the `dev` profile. Invalid logins go to `/login?error`; inactive accounts cannot log in.
+- **Thin controllers:** each action calls one service method and redirects with a flash message. `GlobalExceptionHandler` maps the `ItsmException` families to pages: 404 for not found, 403 for not allowed, the previous page with an error banner for business errors, and 503 for database errors.
+- **Only valid buttons:** `IncidentService.availableActions(incident, user)` combines the State pattern (what is legal now) with the role rules (who may do it). The UI shows only buttons that will work, and the server re-checks everything anyway.
+- **`spring.jpa.open-in-view = true`:** the database session stays open while Thymeleaf renders, so lazy collections (notes, skills) can be displayed. This is standard for server-rendered apps. The cost is a longer-held connection per request; a REST/SPA version would map entities to DTOs instead.
+- **Demo data:** `DemoDataLoader` seeds an empty database with the accounts in `docs/demo-accounts.md`, the services and the categories, so the app can be used at once. It does nothing if users already exist, so it is safe on PostgreSQL.
+
+<!-- Add new entries below (D19, D20, ...) -->

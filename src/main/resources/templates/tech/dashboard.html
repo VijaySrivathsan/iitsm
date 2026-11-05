@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('My queue')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h1 class="h4 mb-0">My queue</h1>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-muted small">Workload: <strong th:text="${activeCount} + ' / ' + ${me.maxWorkload}">2 / 5</strong> active</div>
+            <form th:action="@{/tech/availability}" method="post">
+                <input type="hidden" name="available" th:value="${!me.available}">
+                <button type="submit" class="btn btn-sm" th:classappend="${me.available} ? 'btn-outline-success' : 'btn-outline-secondary'">
+                    <i class="bi" th:classappend="${me.available} ? 'bi-toggle-on' : 'bi-toggle-off'"></i>
+                    <span th:text="${me.available} ? 'Available' : 'Away'">Available</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="progress mb-4" role="progressbar" style="height: 8px"
+         th:attr="aria-valuenow=${activeCount},aria-valuemax=${me.maxWorkload}" aria-label="Workload">
+        <div class="progress-bar" th:style="'width: ' + ${activeCount * 100 / me.maxWorkload} + '%'"></div>
+    </div>
+    <div class="card mb-4"><div class="card-header">Assigned to me (most urgent SLA first)</div><div class="card-body p-0">
+        <div th:replace="~{fragments/layout :: incidentTable(${queue}, true, false)}"></div>
+    </div></div>
+    <div class="card" th:if="${teamWorkload != null}"><div class="card-header">Team workload (team lead view)</div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item" th:each="w : ${teamWorkload}">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span th:text="${w.technician.fullName}">name</span>
+                    <span th:text="${w.activeIncidents} + ' / ' + ${w.maxWorkload()}">1 / 5</span>
+                </div>
+                <div class="progress" style="height: 6px"><div class="progress-bar" th:classappend="${w.full} ? 'bg-danger'" th:style="'width: ' + ${w.percentUsed()} + '%'"></div></div>
+            </li>
+        </ul>
+    </div>
+</main>
+</body>
+</html>

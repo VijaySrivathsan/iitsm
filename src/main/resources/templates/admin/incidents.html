@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('All incidents')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-3">All incidents</h1>
+    <div class="card"><div class="card-body p-0">
+        <div th:replace="~{fragments/layout :: incidentTable(${incidents}, true, true)}"></div>
+    </div></div>
+</main>
+</body>
+</html>

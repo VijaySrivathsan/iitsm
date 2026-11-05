@@ -1,15 +1,31 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>I-ITSM</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Welcome')}"></head>
 <body>
-<main class="container">
-    <h1>I-ITSM is running</h1>
-    <p>Intelligent IT Service Management &amp; Incident Resolution System.</p>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="hero p-5 mb-4">
+        <h1 class="display-6 fw-semibold mb-3"><i class="bi bi-life-preserver me-2"></i>Intelligent IT Service Management</h1>
+        <p class="lead mb-4">Report IT problems, track them to resolution, and let the system prioritise, assign and
+            escalate incidents automatically.</p>
+        <a class="btn btn-light btn-lg me-2" th:href="@{/login}">Log in</a>
+        <a class="btn btn-outline-light btn-lg" th:href="@{/register}">Register as employee</a>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-4"><div class="card h-100"><div class="card-body">
+            <h5><i class="bi bi-lightning-charge text-warning me-1"></i>Automatic priority</h5>
+            <p class="text-muted mb-0">Impact, urgency, service criticality and affected users combine into P1-P4, with the working shown.</p>
+        </div></div></div>
+        <div class="col-md-4"><div class="card h-100"><div class="card-body">
+            <h5><i class="bi bi-people text-primary me-1"></i>Smart assignment</h5>
+            <p class="text-muted mb-0">Skill, workload, round-robin or a scored recommendation - switchable at runtime.</p>
+        </div></div></div>
+        <div class="col-md-4"><div class="card h-100"><div class="card-body">
+            <h5><i class="bi bi-stopwatch text-danger me-1"></i>SLA tracking</h5>
+            <p class="text-muted mb-0">Deadlines per service and priority, warnings before a breach, and a full audit trail.</p>
+        </div></div></div>
+    </div>
 </main>
 </body>
 </html>

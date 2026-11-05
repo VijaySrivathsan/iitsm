@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Not found')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="text-center py-5">
+        <i class="bi bi-search display-3 text-secondary"></i>
+        <h1 class="h3 mt-3">Not found</h1>
+        <p class="text-muted" th:text="${message}">It does not exist.</p>
+        <a class="btn btn-primary" th:href="@{/dashboard}">Back to my dashboard</a>
+    </div>
+</main>
+</body>
+</html>

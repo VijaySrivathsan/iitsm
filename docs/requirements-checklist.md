@@ -3,13 +3,13 @@
 Tick these off as milestones land. Milestone in brackets.
 
 ## MVP (mandatory — 60 marks rides on these)
-- [ ] Users: Employee, Technician, Administrator; register/login [M2, M7]
-- [ ] Incidents: create, view, update, assign, resolve, close [M3, M7]
+- [x] Users: Employee, Technician, Administrator; register/login [M2, M7]
+- [x] Incidents: create, view, update, assign, resolve, close [M3, M7]
 - [x] Priority from impact × urgency × business criticality (+ affected users) → P1–P4 [M4]
-- [x] ≥2 technician assignment strategies, switchable by admin at runtime [M5] (4 built; admin UI in M7)
+- [x] ≥2 technician assignment strategies, switchable by admin at runtime [M5] (4 built; admin screen)
 - [ ] SLA: per service/priority policy, deadlines, response + resolution tracking, warnings, violation detection & recording [M4, M8]
-- [x] ≥2 notification mechanisms (simulated OK): in-app + email + SMS [M6] (bell UI in M7)
-- [x] Audit: complete incident history (timestamp, user, action, incident, prev/new state, description) [M6] (screens in M7)
+- [x] ≥2 notification mechanisms (simulated OK): in-app + email + SMS [M6] (bell icon + inbox)
+- [x] Audit: complete incident history (timestamp, user, action, incident, prev/new state, description) [M6] (incident timeline + admin log)
 - [ ] Search/filter with ≥5 criteria: ID, date, status, priority, category, service, technician, SLA status [M8]
 - [ ] ≥2 intelligent features [M8]
 - [ ] Persistence: users, services, incidents, technicians, SLA policies, audit, resolutions [M2, M4]
@@ -34,7 +34,7 @@ NEW → CLASSIFIED → ASSIGNED → ACKNOWLEDGED → IN_PROGRESS → RESOLVED �
 ## Exceptions to handle
 Invalid login, unauthorized op, invalid incident, invalid state transition, technician unavailable, workload exceeded, service not found, missing SLA config, duplicate incident, DB failure, invalid input.
 
-## Security
+## Security ✅ (M7: login, roles, BCrypt, CSRF, validation, @PreAuthorize)
 Authentication, role-based authorization, BCrypt passwords, input validation (Bean Validation), CSRF on, method-level `@PreAuthorize`.
 
 ## Deliverables (report)

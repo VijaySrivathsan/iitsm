@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Overview')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-3">Overview</h1>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md"><div class="card"><div class="card-body">
+            <div class="stat" th:text="${total}">0</div><div class="stat-label">Total incidents</div></div></div></div>
+        <div class="col-6 col-md"><div class="card"><div class="card-body">
+            <div class="stat text-primary" th:text="${open}">0</div><div class="stat-label">Open</div></div></div></div>
+        <div class="col-6 col-md"><div class="card"><div class="card-body">
+            <div class="stat text-danger" th:text="${critical}">0</div><div class="stat-label">Open P1 (critical)</div></div></div></div>
+        <div class="col-6 col-md"><div class="card"><div class="card-body">
+            <div class="stat text-success" th:text="${resolved}">0</div><div class="stat-label">Resolved / closed</div></div></div></div>
+        <div class="col-6 col-md"><div class="card"><div class="card-body">
+            <div class="stat text-warning" th:text="${breached}">0</div><div class="stat-label">SLA violations</div></div></div></div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header">Needs attention: not yet assigned</div>
+                <div class="card-body p-0">
+                    <div th:replace="~{fragments/layout :: incidentTable(${needsAttention}, true, false)}"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between">
+                    <span>Technician workload</span>
+                    <a class="small fw-normal" th:href="@{/admin/strategy}" th:text="'Strategy: ' + ${strategy.name()}">Strategy</a>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item" th:each="w : ${workloads}">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>
+                                <span th:text="${w.technician.fullName}">name</span>
+                                <span class="badge text-bg-secondary ms-1" th:unless="${w.technician.available}">away</span>
+                                <span class="badge text-bg-info ms-1" th:if="${w.technician.teamLead}">lead</span>
+                            </span>
+                            <span th:text="${w.activeIncidents} + ' / ' + ${w.maxWorkload()}">1 / 5</span>
+                        </div>
+                        <div class="progress" style="height: 6px">
+                            <div class="progress-bar" th:classappend="${w.full} ? 'bg-danger'" th:style="'width: ' + ${w.percentUsed()} + '%'"></div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Technician')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-1" th:text="${tech.fullName}">name</h1>
+    <p class="text-muted" th:text="${tech.username} + ' · ' + ${activeCount} + ' active incident(s)'">u</p>
+    <div class="card" style="max-width: 640px"><div class="card-body">
+        <form th:action="@{/admin/technicians/{id}(id=${tech.id})}" th:object="${form}" method="post" novalidate>
+            <label class="form-label fw-semibold">Skills (incident categories)</label>
+            <div class="row row-cols-2 row-cols-md-3 g-1 mb-3">
+                <div class="col" th:each="c : ${categories}">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" th:field="*{skillIds}" th:value="${c.id}">
+                        <label class="form-check-label" th:for="${#ids.prev('skillIds')}" th:text="${c.name}">c</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col">
+                    <label class="form-label" for="maxWorkload">Max active incidents</label>
+                    <input class="form-control" type="number" min="1" max="50" th:field="*{maxWorkload}" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{maxWorkload}"></div>
+                </div>
+                <div class="col">
+                    <label class="form-label" for="experienceLevel">Experience (1-5)</label>
+                    <input class="form-control" type="number" min="1" max="5" th:field="*{experienceLevel}" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{experienceLevel}"></div>
+                </div>
+            </div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" role="switch" th:field="*{teamLead}">
+                <label class="form-check-label" th:for="${#ids.prev('teamLead')}">Team lead (receives escalations)</label>
+            </div>
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" th:field="*{available}">
+                <label class="form-check-label" th:for="${#ids.prev('available')}">Available for new incidents</label>
+            </div>
+            <button class="btn btn-primary" type="submit">Save</button>
+            <a class="btn btn-link" th:href="@{/admin/users}">Cancel</a>
+        </form>
+    </div></div>
+</main>
+</body>
+</html>

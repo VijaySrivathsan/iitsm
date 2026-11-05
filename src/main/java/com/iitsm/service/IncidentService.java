@@ -7,6 +7,7 @@ import com.iitsm.domain.incident.Impact;
 import com.iitsm.domain.incident.Incident;
 import com.iitsm.domain.incident.IncidentFactory;
 import com.iitsm.domain.incident.IncidentNumber;
+import com.iitsm.domain.incident.IncidentOperation;
 import com.iitsm.domain.incident.IncidentReport;
 import com.iitsm.domain.incident.IncidentStatus;
 import com.iitsm.domain.incident.NoteType;
@@ -42,7 +43,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Application service for the incident use cases (create, view, update, assign, resolve, close).
@@ -146,6 +149,54 @@ public class IncidentService {
         return incidents.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
+
+    /**
+     * Which actions this user can take on this incident now: the State pattern says what is legal in
+     * the current status, and the same role rules the action methods enforce say who may do it.
+     */
+    @Transactional(readOnly = true)
+    public Set<IncidentAction> availableActions(Incident incident, User user) {
+        Set<IncidentAction> actions = EnumSet.noneOf(IncidentAction.class);
+        boolean admin = user instanceof Administrator;
+        boolean reporter = incident.isReportedBy(user);
+        boolean assignee = incident.isAssignedTo(user);
+        boolean open = incident.getStatus() != IncidentStatus.CLOSED;
+
+        if (admin && incident.allows(IncidentOperation.CLASSIFY)) {
+            actions.add(IncidentAction.CLASSIFY);
+        }
+        if (admin && incident.allows(IncidentOperation.ASSIGN)) {
+            actions.add(IncidentAction.ASSIGN);
+        }
+        if (assignee) {
+            addIfAllowed(actions, incident, IncidentOperation.ACKNOWLEDGE, IncidentAction.ACKNOWLEDGE);
+            addIfAllowed(actions, incident, IncidentOperation.START_WORK, IncidentAction.START_WORK);
+            addIfAllowed(actions, incident, IncidentOperation.REQUEST_INFO, IncidentAction.REQUEST_INFO);
+            addIfAllowed(actions, incident, IncidentOperation.RESOLVE, IncidentAction.RESOLVE);
+        }
+        if (reporter) {
+            addIfAllowed(actions, incident, IncidentOperation.PROVIDE_INFO, IncidentAction.PROVIDE_INFO);
+            addIfAllowed(actions, incident, IncidentOperation.REOPEN, IncidentAction.REOPEN);
+        }
+        if (reporter || admin) {
+            addIfAllowed(actions, incident, IncidentOperation.VERIFY, IncidentAction.VERIFY);
+            addIfAllowed(actions, incident, IncidentOperation.CLOSE, IncidentAction.CLOSE);
+            if (incident.getStatus().isOpen() && incident.getStatus() != IncidentStatus.NEW) {
+                actions.add(IncidentAction.CHANGE_IMPACT);
+            }
+        }
+        if (open && (reporter || assignee)) {
+            actions.add(IncidentAction.ADD_NOTE);
+        }
+        return actions;
+    }
+
+    private static void addIfAllowed(Set<IncidentAction> actions, Incident incident, IncidentOperation operation,
+                                     IncidentAction action) {
+        if (incident.allows(operation)) {
+            actions.add(action);
+        }
+    }
 
     // ------------------------------------------------------------------ classify & assign
 
