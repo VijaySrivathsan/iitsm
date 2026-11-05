@@ -12,6 +12,7 @@ All passwords: `demo123`
 | Technician | `tech2` | Divya Iyer | Skills: NETWORK, CLOUD |
 | Technician | `tech3` | Arjun Das | Skills: AUTHENTICATION, SECURITY |
 | Technician (team lead) | `lead1` | Meera Pillai | Escalation level 1 |
-| Administrator | `admin` | IT Manager | Escalation level 2; config screens |
+| Administrator | `sysadmin` | Vikram Rao | System administrator; escalation level 2 |
+| Administrator (IT manager) | `admin` | Anita Menon | IT manager (`itManager` flag); escalation level 3; config screens |
 
 Seeded services: Payment Gateway (critical), Email, VPN, HR Portal, Cloud Storage, Auth/SSO, Core Database.
