@@ -126,6 +126,19 @@ class SlaMonitorTest {
     }
 
     @Test
+    void whenTheOnlyTeamLeadIsTheAssignee_escalationSkipsToTheAdministrator() {
+        d.lead1.addSkill(d.application);                 // lead1 can take application incidents...
+        d.tech1.markUnavailable();                       // ...and tech1 is away, so the P1 goes to lead1
+        Incident incident = p1();
+        assertThat(incident.getAssignee()).isEqualTo(d.lead1);
+        at(6);
+        assertThat(monitor.runChecks().escalations()).isEqualTo(1);
+        assertThat(escalation.historyOf(incident))
+                .extracting(Escalation::getLevel, e -> e.getEscalatedTo().getUsername())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(EscalationLevel.ADMINISTRATOR, "sysadmin"));
+    }
+
+    @Test
     void lowPriorityIncidents_areNeverEscalated() {
         incidents.report(d.emp1, d.hrPortal.getId(), d.application.getId(),
                 new IncidentReport("Typo on HR page", "Minor", Impact.LOW, Urgency.LOW, 1)); // P4

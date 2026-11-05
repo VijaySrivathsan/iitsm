@@ -95,10 +95,16 @@ public class EscalationService {
         if (!now.isAfter(dueAt)) {
             return Optional.empty();
         }
-        EscalationLevel level = chain.peekFirst();
-        Optional<User> target = targetFor(level, incident);
+        // Take the next level that has someone to escalate to (e.g. skip "team lead" when the only team
+        // lead is the person already assigned).
+        EscalationLevel level = null;
+        Optional<User> target = Optional.empty();
+        while (!chain.isEmpty() && target.isEmpty()) {
+            level = chain.pollFirst();
+            target = targetFor(level, incident);
+        }
         if (target.isEmpty()) {
-            log.warn("No one to escalate {} to at level {}", incident.getNumber(), level);
+            log.warn("No one left to escalate {} to", incident.getNumber());
             return Optional.empty();
         }
         long minutes = Duration.between(incident.getCreatedAt(), now).toMinutes();

@@ -100,3 +100,4 @@ Coverage required by the brief: normal ops, boundary conditions, invalid inputs,
 | TC94 | Search | Normal | Category + status combined | AND of both filters | SearchAndReportTest#filtersCombineWithAnd | Pass |
 | TC95 | Authorization | Authorization | Search as employee / technician / team lead | Own / assigned / all incidents only | SearchAndReportTest#resultsAreLimitedToWhatTheUserMaySee | Pass |
 | TC96 | Reports | Normal | Dashboard figures for 3 incidents | Totals, P1 open, 100% SLA compliance, 30 min average fix, breakdowns, unassigned list | SearchAndReportTest#dashboardFigures | Pass |
+| TC97 | Intelligence (C) | Business rule | Overdue P1 assigned to the only team lead | Level 1 skipped; escalated straight to the system administrator | SlaMonitorTest#whenTheOnlyTeamLeadIsTheAssignee_escalationSkipsToTheAdministrator | Pass |
