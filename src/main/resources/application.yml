@@ -29,4 +29,11 @@ itsm:
     # Which PriorityStrategy to use: weighted (default) or matrix
     strategy: weighted
   sla:
+    # How often the background SLA monitor runs, and when an incident counts as "at risk"
     monitor-interval: PT60S
+    risk-threshold: 0.75
+  escalation:
+    enabled: true
+  duplicates:
+    # Similarity (0-1) at which a new incident is flagged as a possible duplicate
+    threshold: 0.5

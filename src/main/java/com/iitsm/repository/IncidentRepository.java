@@ -34,6 +34,14 @@ public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSp
     /** Number of incidents in the given statuses held by a technician (their workload). */
     long countByAssigneeAndStatusIn(Technician assignee, Collection<IncidentStatus> statuses);
 
+    /** Open incidents reported since a moment (used by duplicate detection and correlation). */
+    List<Incident> findByStatusInAndCreatedAtAfter(Collection<IncidentStatus> statuses, java.time.Instant since);
+
+    /** Open incidents in the given statuses (used by the SLA monitor). */
+    List<Incident> findByStatusInOrderByCreatedAtAsc(Collection<IncidentStatus> statuses);
+
+    List<Incident> findByDuplicateOf(Incident parent);
+
     /** How many incidents on a service this technician has handled (experience with that service). */
     long countByAssigneeAndServiceAndStatusIn(Technician assignee, ITService service,
                                               Collection<IncidentStatus> statuses);

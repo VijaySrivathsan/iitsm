@@ -94,4 +94,17 @@ Adding a push channel = one `NotificationChannel` class + one `ChannelType` valu
 - **`spring.jpa.open-in-view = true`:** the database session stays open while Thymeleaf renders, so lazy collections (notes, skills) can be displayed. This is standard for server-rendered apps. The cost is a longer-held connection per request; a REST/SPA version would map entities to DTOs instead.
 - **Demo data:** `DemoDataLoader` seeds an empty database with the accounts in `docs/demo-accounts.md`, the services and the categories, so the app can be used at once. It does nothing if users already exist, so it is safe on PostgreSQL.
 
-<!-- Add new entries below (D19, D20, ...) -->
+## D19. Search with JPA Specifications
+Each filter is a small `Specification<Incident>` in `IncidentSpecifications`. It returns null when its form field is empty, so `Specification.allOf(...)` combines only the filters actually used. The search supports 10 criteria (number, text, from, to, status, priority, category, service, technician, SLA status) plus a visibility scope per role.
+Alternatives: one repository method per combination, which explodes in number, or hand-built JPQL strings, which are error-prone and open to injection.
+
+## D20. Intelligent features A, B, C and E, all behind interfaces
+- **A, duplicates:** `TextNormalizer` handles stopwords, simple plurals and synonyms (transaction/checkout/pay → payment; down/failing/unable → outage). `TextSimilarityDuplicateDetector` scores Jaccard word overlap, +0.2 when the service is the same, and flags a match at 0.5 or above. A match always points at the *original* report, not at another copy. The same employee repeating the same report within an hour gets `DuplicateIncidentException`. A person confirms or dismisses each suggestion; the system never merges automatically.
+- **B, correlation:** the incident page lists other open incidents on the same service from the last 24 h. The dashboard raises a "possible service outage" banner when a service has 2 or more open reports in the last hour.
+- **C, escalation:** an unacknowledged P1/P2 escalates to the team lead at the response deadline, then to the system administrator one response window later, then to the IT manager. The chain is a `Deque<EscalationLevel>`, and acknowledging the incident stops it.
+- **E, SLA risk:** an incident is at risk at 75% of the response window without acknowledgement, at 75% of the resolution window, or at 50% when the technician is at least 80% busy. Each warning and each breach is raised only once.
+- **Background job:** `SlaMonitor` runs `SlaMonitorService.runChecks()` every minute (`@Scheduled`). Tests call `runChecks()` directly with a `MutableClock`, so 30 minutes of SLA time take milliseconds.
+`DuplicateDetector` and `SlaRiskEvaluator` are interfaces, so a machine-learning version could replace the rule-based one without touching any caller.
+Known limitation: text similarity ignores word order and meaning, so "payment works" and "payment fails" share the word "payment". That's why a person confirms each suggestion.
+
+<!-- Add new entries below (D21, D22, ...) -->

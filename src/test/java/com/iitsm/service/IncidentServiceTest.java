@@ -100,7 +100,10 @@ class IncidentServiceTest {
         assertThat(first.getCreatedAt()).isEqualTo(NOW);
         assertThat(events.stream(IncidentEvent.class))
                 .extracting(IncidentEvent::type, IncidentEvent::actor)
-                .containsExactly(tuple(IncidentEventType.CREATED, "emp1"), tuple(IncidentEventType.CREATED, "emp2"));
+                .containsExactly(tuple(IncidentEventType.CREATED, "emp1"), tuple(IncidentEventType.CREATED, "emp2"),
+                        // same text from a second employee -> flagged as a possible duplicate by the system
+                        tuple(IncidentEventType.DUPLICATE_DETECTED, IncidentEvent.SYSTEM));
+        assertThat(second.getPossibleDuplicateOf()).isEqualTo(first);
     }
 
     @Test

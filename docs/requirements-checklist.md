@@ -7,12 +7,12 @@ Tick these off as milestones land. Milestone in brackets.
 - [x] Incidents: create, view, update, assign, resolve, close [M3, M7]
 - [x] Priority from impact × urgency × business criticality (+ affected users) → P1–P4 [M4]
 - [x] ≥2 technician assignment strategies, switchable by admin at runtime [M5] (4 built; admin screen)
-- [ ] SLA: per service/priority policy, deadlines, response + resolution tracking, warnings, violation detection & recording [M4, M8]
+- [x] SLA: per service/priority policy, deadlines, response + resolution tracking, warnings, violation detection & recording [M4, M8]
 - [x] ≥2 notification mechanisms (simulated OK): in-app + email + SMS [M6] (bell icon + inbox)
 - [x] Audit: complete incident history (timestamp, user, action, incident, prev/new state, description) [M6] (incident timeline + admin log)
-- [ ] Search/filter with ≥5 criteria: ID, date, status, priority, category, service, technician, SLA status [M8]
-- [ ] ≥2 intelligent features [M8]
-- [ ] Persistence: users, services, incidents, technicians, SLA policies, audit, resolutions [M2, M4]
+- [x] Search/filter with ≥5 criteria: ID, date, status, priority, category, service, technician, SLA status [M8] (10 criteria)
+- [x] ≥2 intelligent features [M8] (A, B, C, D, E)
+- [x] Persistence: users, services, incidents, technicians, SLA policies, audit, resolutions [M2, M4] (PostgreSQL profile still to verify with Docker)
 
 ## Lifecycle
 NEW → CLASSIFIED → ASSIGNED → ACKNOWLEDGED → IN_PROGRESS → RESOLVED → VERIFIED → CLOSED
@@ -24,9 +24,10 @@ NEW → CLASSIFIED → ASSIGNED → ACKNOWLEDGED → IN_PROGRESS → RESOLVED �
 - Admin: manage users/technicians/services/SLA policies/categories/assignment strategy; monitor incidents, reports, audit logs, SLA violations
 
 ## Intelligent features (pick ≥2; planned)
-- [ ] A. Duplicate detection (text similarity + same service + time window) [M8]
-- [ ] C. Automatic escalation (unacknowledged P1/P2 → team lead → admin) [M8]
-- [ ] E. SLA risk detection (warn at 75% of elapsed SLA) [M8]
+- [x] A. Duplicate detection (text similarity + same service + time window) [M8]
+- [x] C. Automatic escalation (unacknowledged P1/P2 → team lead → admin → IT manager) [M8]
+- [x] B. Incident correlation (related incidents per service, outage hotspot banner) [M8]
+- [x] E. SLA risk detection (warn at 75% of elapsed SLA) [M8]
 - [x] D. Smart technician recommendation (scoring strategy) [M5]
 - [ ] F. Category suggestion from description (keywords) — optional
 - [ ] G. Suggested resolution from similar past incidents — optional

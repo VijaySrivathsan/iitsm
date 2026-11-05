@@ -16,5 +16,6 @@ public enum IncidentAction {
     VERIFY,
     REOPEN,
     CLOSE,
-    CHANGE_IMPACT
+    CHANGE_IMPACT,
+    REVIEW_DUPLICATE
 }

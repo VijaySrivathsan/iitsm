@@ -41,9 +41,22 @@
                         <div class="small fw-semibold mb-1"><i class="bi bi-calculator me-1"></i>How the priority was calculated</div>
                         <div class="explain" th:text="${incident.priorityExplanation}">explanation</div>
                     </div>
-                    <div th:if="${incident.possibleDuplicateOf != null}" class="alert alert-warning mt-3 mb-0 small">
-                        <i class="bi bi-files me-1"></i>Possible duplicate of
-                        <a th:href="@{/incidents/{n}(n=${incident.possibleDuplicateOf.number})}" th:text="${incident.possibleDuplicateOf.number}">INC</a>
+                    <div th:if="${incident.duplicateOf != null}" class="alert alert-secondary mt-3 mb-0 small">
+                        <i class="bi bi-link-45deg me-1"></i>Duplicate of
+                        <a th:href="@{/incidents/{n}(n=${incident.duplicateOf.number})}" th:text="${incident.duplicateOf.number}">INC</a>
+                        - work is tracked on that incident.
+                    </div>
+                    <div th:if="${incident.hasUnconfirmedDuplicate()}" class="alert alert-warning mt-3 mb-0 small">
+                        <div><i class="bi bi-files me-1"></i><strong>Possible duplicate</strong> of
+                            <a th:href="@{/incidents/{n}(n=${incident.possibleDuplicateOf.number})}" th:text="${incident.possibleDuplicateOf.number}">INC</a>
+                            (<span th:text="${incident.possibleDuplicateOf.title}">title</span>) -
+                            similarity <span th:text="${#numbers.formatDecimal(incident.similarityScore, 1, 2)}">0.87</span></div>
+                        <div class="mt-2" th:if="${can.contains('REVIEW_DUPLICATE')}">
+                            <form class="d-inline" th:action="@{/incidents/{n}/duplicate/confirm(n=${incident.number})}" method="post">
+                                <button class="btn btn-sm btn-warning" type="submit">Confirm &amp; link</button></form>
+                            <form class="d-inline" th:action="@{/incidents/{n}/duplicate/dismiss(n=${incident.number})}" method="post">
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">Not a duplicate</button></form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -117,6 +130,33 @@
                     <div class="mt-2 text-danger" th:if="${sla.breachedAt != null}" th:text="'Breached at ' + ${@fmt.dateTime(sla.breachedAt)}">breached</div>
                 </div>
                 <div class="card-body small text-muted" th:unless="${sla.started}">The SLA starts when the incident is classified.</div>
+            </div>
+
+            <div class="card mb-4 border-danger" th:if="${not #lists.isEmpty(escalations)}">
+                <div class="card-header text-danger"><i class="bi bi-arrow-up-circle me-1"></i>Escalations</div>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item" th:each="e : ${escalations}">
+                        <strong th:text="'Level ' + ${e.level.step()} + ': ' + ${e.level.label()}">Level 1</strong>
+                        → <span th:text="${e.escalatedTo.fullName}">name</span>
+                        <div class="text-muted" th:text="${@fmt.dateTime(e.escalatedAt)} + ' · ' + ${e.reason}">time</div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card mb-4" th:if="${not #lists.isEmpty(children) or not #lists.isEmpty(related)}">
+                <div class="card-header"><i class="bi bi-diagram-3 me-1"></i>Related incidents</div>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item" th:each="d : ${children}">
+                        <i class="bi bi-link-45deg"></i> Duplicate:
+                        <a th:href="@{/incidents/{n}(n=${d.number})}" th:text="${d.number}">INC</a>
+                        <span class="text-muted" th:text="${d.title}">title</span>
+                    </li>
+                    <li class="list-group-item" th:each="o : ${related}">
+                        <a th:href="@{/incidents/{n}(n=${o.number})}" th:text="${o.number}">INC</a>
+                        <span th:text="${o.title}">title</span>
+                        <div class="text-muted" th:text="'Same service · ' + ${@fmt.dateTime(o.createdAt)} + ' · ' + ${o.status}">x</div>
+                    </li>
+                </ul>
             </div>
 
             <div class="card" th:if="${not #sets.isEmpty(can)}">

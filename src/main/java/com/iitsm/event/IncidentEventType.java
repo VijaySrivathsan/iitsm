@@ -22,7 +22,8 @@ public enum IncidentEventType {
     SLA_APPROACHING("SLA deadline approaching"),
     SLA_VIOLATED("SLA violated"),
     ESCALATED("Incident escalated"),
-    DUPLICATE_DETECTED("Possible duplicate detected");
+    DUPLICATE_DETECTED("Possible duplicate detected"),
+    DUPLICATE_CONFIRMED("Duplicate confirmed and linked");
 
     private final String label;
 

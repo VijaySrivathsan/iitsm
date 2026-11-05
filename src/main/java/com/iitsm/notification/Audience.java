@@ -7,5 +7,7 @@ public enum Audience {
     REPORTER,
     ASSIGNEE,
     TEAM_LEADS,
-    ADMINS
+    ADMINS,
+    /** The person an incident was just escalated to. */
+    ESCALATION_TARGET
 }

@@ -23,6 +23,7 @@ import com.iitsm.domain.user.User;
 import com.iitsm.assignment.AssignmentService;
 import com.iitsm.event.IncidentEvent;
 import com.iitsm.event.IncidentEventPublisher;
+import com.iitsm.intelligence.DuplicateDetectionService;
 import com.iitsm.event.IncidentEventType;
 import com.iitsm.exception.CategoryNotFoundException;
 import com.iitsm.exception.IncidentNotFoundException;
@@ -70,13 +71,15 @@ public class IncidentService {
     private final PriorityService priorityService;
     private final SlaService slaService;
     private final AssignmentService assignmentService;
+    private final DuplicateDetectionService duplicates;
     private final IncidentEventPublisher events;
     private final Clock clock;
 
     public IncidentService(IncidentRepository incidents, ITServiceRepository services,
                            CategoryRepository categories, TechnicianRepository technicians,
                            IncidentFactory incidentFactory, PriorityService priorityService, SlaService slaService,
-                           AssignmentService assignmentService, IncidentEventPublisher events, Clock clock) {
+                           AssignmentService assignmentService, DuplicateDetectionService duplicates,
+                           IncidentEventPublisher events, Clock clock) {
         this.incidents = incidents;
         this.services = services;
         this.categories = categories;
@@ -85,6 +88,7 @@ public class IncidentService {
         this.priorityService = priorityService;
         this.slaService = slaService;
         this.assignmentService = assignmentService;
+        this.duplicates = duplicates;
         this.events = events;
         this.clock = clock;
     }
@@ -101,10 +105,12 @@ public class IncidentService {
         }
         ITService service = services.findById(serviceId).orElseThrow(() -> new ServiceNotFoundException(serviceId));
         Category category = categoryId == null ? null : findCategory(categoryId);
+        duplicates.rejectRepeatedReport(reporter, service, report.title(), report.description());
         IncidentNumber number = IncidentNumber.next(incidents.findMaxSequenceNo());
         Incident incident = incidents.save(incidentFactory.create(number, report, reporter, service));
         publish(IncidentEventType.CREATED, incident, null, actor,
                 "Reported by " + actor.getUsername() + " for service " + service.getName());
+        duplicates.flagPossibleDuplicate(incident);
         if (category != null) {
             applyClassification(incident, category, null); // automatic, done by the system
             assignmentService.autoAssign(incident);
@@ -187,6 +193,10 @@ public class IncidentService {
         }
         if (open && (reporter || assignee)) {
             actions.add(IncidentAction.ADD_NOTE);
+        }
+        boolean lead = user instanceof Technician t && t.isTeamLead();
+        if (incident.hasUnconfirmedDuplicate() && (admin || assignee || lead)) {
+            actions.add(IncidentAction.REVIEW_DUPLICATE);
         }
         return actions;
     }
@@ -356,6 +366,38 @@ public class IncidentService {
         incident.close(closureNote, now());
         publish(IncidentEventType.CLOSED, incident, before, actor, closureNote);
         return incident;
+    }
+
+    // ------------------------------------------------------------------ duplicates (feature A)
+
+    /** The assigned technician, a team lead or an administrator confirms the suggested duplicate. */
+    public Incident confirmDuplicate(String incidentNumber, User actor) {
+        Incident incident = find(incidentNumber);
+        requireDuplicateReviewer(incident, actor);
+        Incident parent = incident.getPossibleDuplicateOf();
+        incident.confirmDuplicate();
+        publish(IncidentEventType.DUPLICATE_CONFIRMED, incident, incident.getStatus(), actor,
+                "Confirmed as duplicate of " + (parent == null ? "?" : parent.getNumber()));
+        return incident;
+    }
+
+    public Incident dismissDuplicate(String incidentNumber, User actor) {
+        Incident incident = find(incidentNumber);
+        requireDuplicateReviewer(incident, actor);
+        incident.dismissPossibleDuplicate();
+        publish(IncidentEventType.NOTE_ADDED, incident, incident.getStatus(), actor,
+                "Duplicate suggestion dismissed");
+        return incident;
+    }
+
+    private void requireDuplicateReviewer(Incident incident, User actor) {
+        boolean allowed = actor instanceof Administrator
+                || incident.isAssignedTo(actor)
+                || (actor instanceof Technician t && t.isTeamLead());
+        if (!allowed) {
+            throw new UnauthorizedOperationException("Only the assigned technician, a team lead or an "
+                    + "administrator can review duplicates");
+        }
     }
 
     // ------------------------------------------------------------------ helpers

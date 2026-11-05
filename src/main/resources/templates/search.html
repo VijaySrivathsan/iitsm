@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Search')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <h1 class="h4 mb-3"><i class="bi bi-search me-1"></i>Search incidents</h1>
+
+    <div class="card mb-4"><div class="card-body">
+        <form th:action="@{/search}" method="get" class="row g-2">
+            <div class="col-md-2"><input class="form-control form-control-sm" name="number" th:value="${c.number}" placeholder="INC1001" aria-label="Incident number"></div>
+            <div class="col-md-4"><input class="form-control form-control-sm" name="text" th:value="${c.text}" placeholder="Words in title or description" aria-label="Text"></div>
+            <div class="col-6 col-md-3">
+                <div class="input-group input-group-sm"><span class="input-group-text">From</span>
+                    <input class="form-control" type="date" name="from" th:value="${c.from}" aria-label="From date"></div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="input-group input-group-sm"><span class="input-group-text">To</span>
+                    <input class="form-control" type="date" name="to" th:value="${c.to}" aria-label="To date"></div>
+            </div>
+            <div class="col-6 col-md-2"><select class="form-select form-select-sm" name="status" aria-label="Status">
+                <option value="">Any status</option>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${#strings.replace(s.name(), '_', ' ')}" th:selected="${s == c.status}">s</option>
+            </select></div>
+            <div class="col-6 col-md-2"><select class="form-select form-select-sm" name="priority" aria-label="Priority">
+                <option value="">Any priority</option>
+                <option th:each="p : ${priorities}" th:value="${p}" th:text="${p.display()}" th:selected="${p == c.priority}">p</option>
+            </select></div>
+            <div class="col-6 col-md-2"><select class="form-select form-select-sm" name="categoryId" aria-label="Category">
+                <option value="">Any category</option>
+                <option th:each="x : ${categories}" th:value="${x.id}" th:text="${x.name}" th:selected="${x.id == c.categoryId}">c</option>
+            </select></div>
+            <div class="col-6 col-md-2"><select class="form-select form-select-sm" name="serviceId" aria-label="Service">
+                <option value="">Any service</option>
+                <option th:each="x : ${services}" th:value="${x.id}" th:text="${x.name}" th:selected="${x.id == c.serviceId}">s</option>
+            </select></div>
+            <div class="col-6 col-md-2" th:if="${technicians != null}"><select class="form-select form-select-sm" name="technicianId" aria-label="Technician">
+                <option value="">Any technician</option>
+                <option th:each="x : ${technicians}" th:value="${x.id}" th:text="${x.fullName}" th:selected="${x.id == c.technicianId}">t</option>
+            </select></div>
+            <div class="col-6 col-md-2"><select class="form-select form-select-sm" name="slaStatus" aria-label="SLA status">
+                <option value="">Any SLA status</option>
+                <option th:each="x : ${slaStatuses}" th:value="${x}" th:text="${#strings.replace(x.name(), '_', ' ')}" th:selected="${x == c.slaStatus}">x</option>
+            </select></div>
+            <div class="col-12">
+                <button class="btn btn-sm btn-primary" type="submit">Search</button>
+                <a class="btn btn-sm btn-link" th:href="@{/search}">Clear filters</a>
+            </div>
+        </form>
+    </div></div>
+
+    <p class="text-muted small" th:text="${#lists.size(results)} + ' incident(s) found'">0 found</p>
+    <div class="card"><div class="card-body p-0">
+        <div th:replace="~{fragments/layout :: incidentTable(${results}, true, true)}"></div>
+    </div></div>
+</main>
+</body>
+</html>

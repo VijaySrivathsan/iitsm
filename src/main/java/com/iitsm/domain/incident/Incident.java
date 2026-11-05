@@ -288,6 +288,36 @@ public class Incident extends BaseEntity {
         this.status = next;
     }
 
+    // ----- duplicate handling (intelligent feature A) -----
+
+    /** Records that this incident looks like another one (not yet confirmed by a person). */
+    public void markPossibleDuplicate(Incident other, double score) {
+        Checks.requireNonNull(other, "Other incident");
+        if (other == this || other.equals(this)) {
+            return;
+        }
+        this.possibleDuplicateOf = other;
+        this.similarityScore = Math.round(score * 100) / 100.0;
+    }
+
+    /** A technician or administrator confirms the suggested duplicate: the incidents are linked. */
+    public void confirmDuplicate() {
+        if (possibleDuplicateOf == null) {
+            throw new com.iitsm.exception.InvalidInputException("There is no suggested duplicate to confirm");
+        }
+        this.duplicateOf = possibleDuplicateOf;
+    }
+
+    /** The suggestion was wrong: forget it. */
+    public void dismissPossibleDuplicate() {
+        this.possibleDuplicateOf = null;
+        this.similarityScore = null;
+    }
+
+    public boolean hasUnconfirmedDuplicate() {
+        return possibleDuplicateOf != null && duplicateOf == null;
+    }
+
     /** True if the given user reported this incident. */
     public boolean isReportedBy(User user) {
         return user != null && reporter.equals(user);

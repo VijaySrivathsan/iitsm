@@ -65,9 +65,18 @@ class AssignmentServiceTest {
         coreDb = em.persist(new ITService("Core Database", null, 4));
     }
 
+    /** Different database problems each time (identical repeats would be refused as duplicates). */
+    private static final String[][] DB_PROBLEMS = {
+            {"Orders table locked", "Deadlock on orders table"},
+            {"Replica lag growing", "Read replica is hours behind"},
+            {"Backup job failed", "Nightly backup did not finish"},
+            {"Reports query timing out", "Monthly report never loads"}};
+    private int reported;
+
     private Incident reportDbIncident() {
+        String[] p = DB_PROBLEMS[reported++ % DB_PROBLEMS.length];
         return incidents.report(emp, coreDb.getId(), database.getId(),
-                new IncidentReport("DB slow", "Queries time out", Impact.MEDIUM, Urgency.HIGH, 20));
+                new IncidentReport(p[0], p[1], Impact.MEDIUM, Urgency.HIGH, 20));
     }
 
     @Test

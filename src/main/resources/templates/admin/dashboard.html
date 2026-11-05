@@ -3,29 +3,47 @@
 <head th:replace="~{fragments/layout :: head('Overview')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
-<main class="container py-4">
+<main class="container py-4" th:with="r=${report}">
     <div th:replace="~{fragments/layout :: flash}"></div>
     <h1 class="h4 mb-3">Overview</h1>
 
+    <!-- Incident overview -->
     <div class="row g-3 mb-4">
-        <div class="col-6 col-md"><div class="card"><div class="card-body">
-            <div class="stat" th:text="${total}">0</div><div class="stat-label">Total incidents</div></div></div></div>
-        <div class="col-6 col-md"><div class="card"><div class="card-body">
-            <div class="stat text-primary" th:text="${open}">0</div><div class="stat-label">Open</div></div></div></div>
-        <div class="col-6 col-md"><div class="card"><div class="card-body">
-            <div class="stat text-danger" th:text="${critical}">0</div><div class="stat-label">Open P1 (critical)</div></div></div></div>
-        <div class="col-6 col-md"><div class="card"><div class="card-body">
-            <div class="stat text-success" th:text="${resolved}">0</div><div class="stat-label">Resolved / closed</div></div></div></div>
-        <div class="col-6 col-md"><div class="card"><div class="card-body">
-            <div class="stat text-warning" th:text="${breached}">0</div><div class="stat-label">SLA violations</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
+            <div class="stat" th:text="${r.total}">0</div><div class="stat-label">Total incidents</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
+            <div class="stat text-primary" th:text="${r.open}">0</div><div class="stat-label">Open</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
+            <div class="stat text-danger" th:text="${r.criticalOpen}">0</div><div class="stat-label">Open P1</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
+            <div class="stat text-success" th:text="${r.resolved}">0</div><div class="stat-label">Resolved / closed</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
+            <div class="stat text-warning" th:text="${r.slaViolations}">0</div><div class="stat-label">SLA violations</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
+            <div class="stat" th:text="${r.slaCompliancePercent != null} ? ${r.slaCompliancePercent} + '%' : '-'">-</div>
+            <div class="stat-label">SLA compliance</div>
+            <div class="small text-muted" th:if="${r.averageResolutionMinutes != null}" th:text="'avg fix ' + ${r.averageResolutionMinutes} + ' min'">avg</div>
+        </div></div></div>
     </div>
 
-    <div class="row g-4">
+    <!-- Hotspots: correlation of incidents on one service -->
+    <div class="alert alert-warning" th:if="${not #maps.isEmpty(r.hotspots)}">
+        <i class="bi bi-fire me-1"></i><strong>Possible service outage:</strong>
+        <span th:each="h, it : ${r.hotspots}"><span th:text="${h.key} + ' (' + ${h.value} + ' open reports in the last hour)'">x</span><span th:unless="${it.last}">, </span></span>
+    </div>
+
+    <div class="row g-4 mb-4">
         <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-header text-danger"><i class="bi bi-alarm me-1"></i>At risk or breached (open)</div>
+                <div class="card-body p-0">
+                    <div th:replace="~{fragments/layout :: incidentTable(${r.atRisk}, false, true)}"></div>
+                </div>
+            </div>
             <div class="card">
                 <div class="card-header">Needs attention: not yet assigned</div>
                 <div class="card-body p-0">
-                    <div th:replace="~{fragments/layout :: incidentTable(${needsAttention}, true, false)}"></div>
+                    <div th:replace="~{fragments/layout :: incidentTable(${r.unassigned}, true, false)}"></div>
                 </div>
             </div>
         </div>
@@ -50,6 +68,22 @@
                         </div>
                     </li>
                 </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breakdowns -->
+    <div class="row g-4">
+        <div class="col-md-6 col-xl-3" th:each="b : ${r.breakdowns()}">
+            <div class="card h-100">
+                <div class="card-header" th:text="${b.title}">By service</div>
+                <div class="card-body">
+                    <div class="mb-2" th:each="e : ${b.counts}">
+                        <div class="d-flex justify-content-between small"><span th:text="${#strings.replace(e.key, '_', ' ')}">k</span><strong th:text="${e.value}">0</strong></div>
+                        <div class="progress" style="height: 6px"><div class="progress-bar bg-secondary" th:style="'width: ' + ${b.percent(e.value)} + '%'"></div></div>
+                    </div>
+                    <p class="text-muted small mb-0" th:if="${#maps.isEmpty(b.counts)}">No data yet.</p>
+                </div>
             </div>
         </div>
     </div>

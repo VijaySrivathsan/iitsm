@@ -3,10 +3,7 @@ package com.iitsm.web;
 import com.iitsm.assignment.AssignmentService;
 import com.iitsm.audit.AuditService;
 import com.iitsm.domain.catalog.Category;
-import com.iitsm.domain.incident.Incident;
-import com.iitsm.domain.incident.IncidentStatus;
 import com.iitsm.domain.incident.Priority;
-import com.iitsm.domain.sla.SlaStatus;
 import com.iitsm.domain.user.NewUser;
 import com.iitsm.domain.user.Role;
 import com.iitsm.domain.user.Technician;
@@ -17,6 +14,7 @@ import com.iitsm.notification.NotificationService;
 import com.iitsm.security.CurrentUserProvider;
 import com.iitsm.service.CatalogService;
 import com.iitsm.service.IncidentService;
+import com.iitsm.service.ReportService;
 import com.iitsm.service.UserService;
 import com.iitsm.web.form.CategoryForm;
 import com.iitsm.web.form.NewUserForm;
@@ -53,17 +51,19 @@ public class AdminController {
     private final CatalogService catalog;
     private final AuditService audit;
     private final NotificationService notifications;
+    private final ReportService reports;
     private final CurrentUserProvider currentUser;
 
     public AdminController(IncidentService incidents, AssignmentService assignment, UserService users,
                            CatalogService catalog, AuditService audit, NotificationService notifications,
-                           CurrentUserProvider currentUser) {
+                           ReportService reports, CurrentUserProvider currentUser) {
         this.incidents = incidents;
         this.assignment = assignment;
         this.users = users;
         this.catalog = catalog;
         this.audit = audit;
         this.notifications = notifications;
+        this.reports = reports;
         this.currentUser = currentUser;
     }
 
@@ -71,17 +71,7 @@ public class AdminController {
 
     @GetMapping
     public String dashboard(Model model) {
-        List<Incident> all = incidents.all(me());
-        model.addAttribute("total", all.size());
-        model.addAttribute("open", all.stream().filter(i -> i.getStatus().isOpen()).count());
-        model.addAttribute("critical", all.stream()
-                .filter(i -> i.getStatus().isOpen() && i.getPriority() == Priority.P1).count());
-        model.addAttribute("resolved", all.stream().filter(i -> !i.getStatus().isOpen()).count());
-        model.addAttribute("breached", all.stream()
-                .filter(i -> i.getSlaRecord().getStatus() == SlaStatus.BREACHED).count());
-        model.addAttribute("needsAttention", all.stream()
-                .filter(i -> i.getStatus() == IncidentStatus.NEW || i.getStatus() == IncidentStatus.CLASSIFIED)
-                .toList());
+        model.addAttribute("report", reports.overview(me()));
         model.addAttribute("workloads", assignment.workloads());
         model.addAttribute("strategy", assignment.activeStrategy());
         return "admin/dashboard";

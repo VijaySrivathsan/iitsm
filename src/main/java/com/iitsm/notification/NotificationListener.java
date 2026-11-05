@@ -6,6 +6,7 @@ import com.iitsm.event.IncidentEvent;
 import com.iitsm.event.IncidentEventType;
 import com.iitsm.exception.ExternalServiceException;
 import com.iitsm.repository.AdministratorRepository;
+import com.iitsm.repository.EscalationRepository;
 import com.iitsm.repository.IncidentRepository;
 import com.iitsm.repository.TechnicianRepository;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import java.util.Set;
 
 import static com.iitsm.notification.Audience.ADMINS;
 import static com.iitsm.notification.Audience.ASSIGNEE;
+import static com.iitsm.notification.Audience.ESCALATION_TARGET;
 import static com.iitsm.notification.Audience.REPORTER;
 import static com.iitsm.notification.Audience.TEAM_LEADS;
 
@@ -58,23 +60,27 @@ public class NotificationListener {
         RULES.put(IncidentEventType.CLOSED, EnumSet.of(REPORTER, ASSIGNEE));
         RULES.put(IncidentEventType.SLA_APPROACHING, EnumSet.of(ASSIGNEE, TEAM_LEADS));
         RULES.put(IncidentEventType.SLA_VIOLATED, EnumSet.of(ASSIGNEE, TEAM_LEADS, ADMINS));
-        RULES.put(IncidentEventType.ESCALATED, EnumSet.of(ASSIGNEE, TEAM_LEADS, ADMINS));
+        RULES.put(IncidentEventType.ESCALATED, EnumSet.of(ASSIGNEE, ESCALATION_TARGET));
+        RULES.put(IncidentEventType.DUPLICATE_CONFIRMED, EnumSet.of(REPORTER));
         RULES.put(IncidentEventType.DUPLICATE_DETECTED, EnumSet.of(ASSIGNEE));
     }
 
     private final IncidentRepository incidents;
     private final TechnicianRepository technicians;
     private final AdministratorRepository administrators;
+    private final EscalationRepository escalations;
     private final NotificationFactory factory;
     private final NotificationPreferences preferences;
     private final List<NotificationChannel> channels;
 
     public NotificationListener(IncidentRepository incidents, TechnicianRepository technicians,
-                                AdministratorRepository administrators, NotificationFactory factory,
+                                AdministratorRepository administrators, EscalationRepository escalations,
+                                NotificationFactory factory,
                                 NotificationPreferences preferences, List<NotificationChannel> channels) {
         this.incidents = incidents;
         this.technicians = technicians;
         this.administrators = administrators;
+        this.escalations = escalations;
         this.factory = factory;
         this.preferences = preferences;
         this.channels = channels;
@@ -110,6 +116,8 @@ public class NotificationListener {
                 }
                 case TEAM_LEADS -> result.addAll(technicians.findByTeamLeadTrueAndActiveTrue());
                 case ADMINS -> result.addAll(administrators.findByActiveTrue());
+                case ESCALATION_TARGET -> escalations.findTopByIncidentOrderByEscalatedAtDesc(incident)
+                        .ifPresent(e -> result.add(e.getEscalatedTo()));
             }
         }
         result.removeIf(u -> !u.isActive() || u.getUsername().equalsIgnoreCase(actor));

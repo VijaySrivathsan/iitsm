@@ -9,7 +9,7 @@
 - [x] M5 Assignment strategies (`prompts/05-assignment.md`): target Nov 11
 - [x] M6 Notifications + audit (`prompts/06-notifications-audit.md`): target Nov 12
 - [x] M7 Security + UI (`prompts/07-security-ui.md`): target Nov 13–15
-- [ ] M8 Search, reports, intelligence (`prompts/08-search-reports-intelligence.md`): target Nov 16–17
+- [x] M8 Search, reports, intelligence (`prompts/08-search-reports-intelligence.md`): target Nov 16–17
 - [ ] M9 Demo data, tests, docs (`prompts/09-demo-data-docs.md`): target Nov 18–19
 - [ ] Video + PDF report: Nov 20–21 (hard deadline Nov 22)
 

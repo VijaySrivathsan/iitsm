@@ -6,6 +6,8 @@ import com.iitsm.domain.incident.Impact;
 import com.iitsm.domain.incident.Incident;
 import com.iitsm.domain.incident.Urgency;
 import com.iitsm.domain.user.User;
+import com.iitsm.intelligence.DuplicateDetectionService;
+import com.iitsm.intelligence.EscalationService;
 import com.iitsm.security.CurrentUserProvider;
 import com.iitsm.service.CatalogService;
 import com.iitsm.service.IncidentAction;
@@ -36,15 +38,20 @@ public class IncidentController {
     private final AssignmentService assignment;
     private final AuditService audit;
     private final CatalogService catalog;
+    private final DuplicateDetectionService duplicates;
+    private final EscalationService escalation;
     private final CurrentUserProvider currentUser;
     private final Clock clock;
 
     public IncidentController(IncidentService incidents, AssignmentService assignment, AuditService audit,
-                              CatalogService catalog, CurrentUserProvider currentUser, Clock clock) {
+                              CatalogService catalog, DuplicateDetectionService duplicates,
+                              EscalationService escalation, CurrentUserProvider currentUser, Clock clock) {
         this.incidents = incidents;
         this.assignment = assignment;
         this.audit = audit;
         this.catalog = catalog;
+        this.duplicates = duplicates;
+        this.escalation = escalation;
         this.currentUser = currentUser;
         this.clock = clock;
     }
@@ -67,7 +74,24 @@ public class IncidentController {
         if (actions.contains(IncidentAction.ASSIGN)) {
             model.addAttribute("recommendations", assignment.recommend(incident));
         }
+        // Intelligent features: correlation (B), confirmed duplicates (A) and escalations (C)
+        model.addAttribute("related", duplicates.relatedOnSameService(incident).stream()
+                .filter(other -> incidents.canView(other, me)).toList());
+        model.addAttribute("children", duplicates.confirmedDuplicatesOf(incident));
+        model.addAttribute("escalations", escalation.historyOf(incident));
         return "incidents/detail";
+    }
+
+    @PostMapping("/duplicate/confirm")
+    public String confirmDuplicate(@PathVariable String number, RedirectAttributes r) {
+        incidents.confirmDuplicate(number, me());
+        return done(number, "Linked as a duplicate.", r);
+    }
+
+    @PostMapping("/duplicate/dismiss")
+    public String dismissDuplicate(@PathVariable String number, RedirectAttributes r) {
+        incidents.dismissDuplicate(number, me());
+        return done(number, "Duplicate suggestion dismissed.", r);
     }
 
     @PostMapping("/classify")

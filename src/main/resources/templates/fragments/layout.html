@@ -21,6 +21,7 @@
         </button>
         <div class="collapse navbar-collapse" id="mainNav" sec:authorize="isAuthenticated()">
             <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/search}"><i class="bi bi-search me-1"></i>Search</a></li>
                 <th:block sec:authorize="hasRole('EMPLOYEE')">
                     <li class="nav-item"><a class="nav-link" th:href="@{/employee}">My incidents</a></li>
                     <li class="nav-item"><a class="nav-link" th:href="@{/employee/report}"><i class="bi bi-plus-circle me-1"></i>Report incident</a></li>
