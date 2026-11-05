@@ -23,4 +23,14 @@ Why: Employee/Technician/Administrator are genuine is-a subtypes with only a few
 Alternatives: storing state objects directly, a big switch on status in Incident.
 Why: JPA persists the simple `IncidentStatus` enum, and `IncidentStateRegistry` (an `EnumMap`) maps it to one shared, stateless `IncidentState` object. Each state overrides only the transitions it allows, so adding a state touches one class plus the registry, and illegal transitions fail in one place (`AbstractIncidentState`).
 
-<!-- Add new entries below (D6, D7, ...) -->
+## D6. A shared `BaseEntity` superclass for identity
+Alternatives: repeat `id`, `version`, `equals`/`hashCode` in every entity.
+Why: every entity genuinely *is a* persistent, identifiable object, so this is an is-a relationship, not inheritance just to reuse code. One place defines id-based equality (safe for Hibernate proxies) and optimistic locking (`@Version`), so two admins editing the same incident can't silently overwrite each other. It's a `@MappedSuperclass`, so there's no extra table.
+
+## D7. Subtype-only user fields use wrapper types (`Integer`, `Boolean`)
+Because of SINGLE_TABLE (D4), a Technician's columns are NULL for Employee rows. Wrapper types accept NULL, and the getters translate NULL into safe defaults, so callers never see nulls.
+
+## D8. Value objects for incident number, SLA record, resolution and feedback
+`IncidentNumber` is a record (`INC1001`), so user-facing numbers never expose database ids. `SlaRecord`, `Resolution` and `Feedback` are `@Embeddable`: they're stored in the incident row and have no identity of their own, which is exactly composition in UML.
+
+<!-- Add new entries below (D9, D10, ...) -->

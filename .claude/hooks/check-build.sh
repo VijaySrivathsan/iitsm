@@ -31,7 +31,14 @@ status=$?
 if [ $status -ne 0 ]; then
   {
     echo "BUILD FAILED after editing $file_path. Fix these compile errors before continuing:"
-    printf '%s\n' "$out" | grep -E '\[ERROR\]|error:' | grep -v -E 'To see the full stack trace|Re-run Maven|For more information|^\[ERROR\] *$|-> \[Help' | head -40
+    # Keep only "File.java:[line,col] message" lines and their symbol/location details, without repeats.
+    printf '%s\n' "$out" \
+      | sed -n '/Failed to execute goal/,$p' \
+      | grep -E '\.java:\[|symbol:|location:|error:' \
+      | sed 's/^\[ERROR\] *//' \
+      | awk '!seen[$0]++' \
+      | head -40
+    printf '%s\n' "$out" | grep -q '\.java:\[' || printf '%s\n' "$out" | grep -E '\[ERROR\]' | head -15
   } >&2
   exit 2
 fi
