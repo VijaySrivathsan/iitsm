@@ -12,8 +12,8 @@
 <body>
 
 <!-- Top navigation: links differ per role (different GUI per user type) -->
-<nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark bg-brand">
-    <div class="container">
+<nav th:fragment="navbar" class="navbar navbar-expand-sm navbar-dark bg-brand">
+    <div class="container-xl">
         <a class="navbar-brand fw-semibold" th:href="@{/dashboard}"><i class="bi bi-life-preserver me-1"></i>I-ITSM</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
                 aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -21,7 +21,7 @@
         </button>
         <div class="collapse navbar-collapse" id="mainNav" sec:authorize="isAuthenticated()">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" th:href="@{/search}"><i class="bi bi-search me-1"></i>Search</a></li>
+                <li class="nav-item"><a class="nav-link text-nowrap" th:href="@{/search}" title="Search incidents"><i class="bi bi-search me-1"></i><span class="d-sm-none d-lg-inline">Search</span></a></li>
                 <th:block sec:authorize="hasRole('EMPLOYEE')">
                     <li class="nav-item"><a class="nav-link" th:href="@{/employee}">My incidents</a></li>
                     <li class="nav-item"><a class="nav-link" th:href="@{/employee/report}"><i class="bi bi-plus-circle me-1"></i>Report incident</a></li>
@@ -51,22 +51,24 @@
                     </li>
                 </th:block>
             </ul>
-            <ul class="navbar-nav align-items-lg-center">
-                <li class="nav-item me-lg-2">
+            <ul class="navbar-nav align-items-sm-center">
+                <li class="nav-item me-sm-2">
                     <a class="nav-link position-relative" th:href="@{/notifications}" aria-label="Notifications">
                         <i class="bi bi-bell fs-5"></i>
                         <span th:if="${unreadCount > 0}" class="badge rounded-pill bg-danger notif-count" th:text="${unreadCount}">3</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <span class="navbar-text me-3 small" th:if="${currentUser != null}">
-                        <i class="bi bi-person-circle me-1"></i><span th:text="${currentUser.fullName}">Name</span>
-                        <span class="badge bg-light text-dark ms-1" th:text="${currentUser.role.label()}">Role</span>
+                    <span class="navbar-text me-2 small text-nowrap" th:if="${currentUser != null}"
+                          th:title="${currentUser.fullName} + ' (' + ${currentUser.role.label()} + ')'">
+                        <i class="bi bi-person-circle me-1"></i><span class="d-sm-none d-lg-inline" th:text="${currentUser.fullName}">Name</span>
+                        <span class="badge bg-light text-dark ms-1 d-sm-none d-xl-inline" th:text="${currentUser.role.label()}">Role</span>
                     </span>
                 </li>
                 <li class="nav-item">
                     <form th:action="@{/logout}" method="post" class="d-inline">
-                        <button class="btn btn-sm btn-outline-light" type="submit">Log out</button>
+                        <button class="btn btn-sm btn-outline-light text-nowrap" type="submit" title="Log out">
+                            <i class="bi bi-box-arrow-right"></i><span class="d-sm-none d-lg-inline ms-1">Log out</span></button>
                     </form>
                 </li>
             </ul>
