@@ -11,16 +11,17 @@ Around that lifecycle it provides:
 - notifications by in-app message, email and SMS (simulated);
 - a complete audit trail;
 - search and dashboards;
-- seven intelligent features (duplicate detection, correlation, automatic escalation, smart technician recommendation, SLA risk detection, category suggestion and suggested resolutions).
+- intelligent operations: duplicate detection, correlation, automatic escalation, smart technician recommendation, SLA risk detection, category suggestion, suggested resolutions, and an external AI Incident Advisor (Google Gemini API with local expert heuristic fallback);
+- operational analytics: Chart.js interactive dashboard charts, service dependency impact graph, and RFC-4180 CSV exports.
 
 | Document | |
 |---|---|
 | Project report (draft) | [docs/report/report.md](docs/report/report.md) |
 | Diagrams (architecture, class, state, ER, sequence) | [docs/report/diagrams.md](docs/report/diagrams.md), [use-case.puml](docs/report/use-case.puml) |
 | Design plan | [docs/plan.md](docs/plan.md) |
-| Design decisions (D1-D20) | [docs/decisions.md](docs/decisions.md) |
+| Design decisions (D1-D25) | [docs/decisions.md](docs/decisions.md) |
 | Requirements checklist | [docs/requirements-checklist.md](docs/requirements-checklist.md) |
-| Documented test cases (97) | [docs/test-cases.md](docs/test-cases.md) |
+| Documented test cases (101) | [docs/test-cases.md](docs/test-cases.md) |
 | Demo accounts | [docs/demo-accounts.md](docs/demo-accounts.md) |
 
 ## Tech stack
@@ -35,7 +36,7 @@ Java 21 · Spring Boot 3.5 · Spring MVC + Thymeleaf + Bootstrap 5 · Spring Sec
 ```bash
 mvn test
 ```
-This runs 241 tests. The build output goes to `target.nosync/`, so iCloud doesn't sync it.
+This runs 245 tests. The build output goes to `target.nosync/`, so iCloud doesn't sync it.
 
 ## Run the app
 In-memory H2, no setup needed:
@@ -79,7 +80,9 @@ Demo data (accounts, 7 services, 9 categories and 28 past incidents) is only cre
 | ≥2 notification mechanisms | In-app (bell), email and SMS via adapter gateways (simulated, with an outbox) |
 | Audit | Every event: time, user, action, incident, previous/new status, description |
 | ≥5 search criteria | 10 combinable filters, scoped by role |
-| ≥2 intelligent features | A duplicates, B correlation, C escalation, D smart recommendation, E SLA risk, F category suggestion, G suggested resolutions |
+| ≥2 intelligent features | A duplicates, B correlation, C escalation, D smart recommendation, E SLA risk, F category suggestion, G suggested resolutions, H AI Incident Advisor (Gemini API + local heuristic fallback) |
+| Visual Analytics & Reporting | Chart.js interactive dashboard charts; RFC-4180 CSV export for Audit Log & Incident Search |
+| Service Topology | Service dependency graph with upstream dependencies and downstream impact analysis |
 | Persistence | JPA entities on PostgreSQL / H2 |
 | Exceptions | `ItsmException` hierarchy + `GlobalExceptionHandler` |
 | Security | BCrypt, roles, `@PreAuthorize`, ownership checks, CSRF, validation |

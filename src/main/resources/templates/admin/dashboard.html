@@ -72,6 +72,35 @@
         </div>
     </div>
 
+    <!-- Visual Analytics (Chart.js) -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-pie-chart me-1"></i>Priority distribution</div>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 250px;">
+                    <canvas id="priorityChart" style="max-height: 230px;"
+                            th:data-p1="${r.byPriority['P1 - Critical'] ?: 0}"
+                            th:data-p2="${r.byPriority['P2 - High'] ?: 0}"
+                            th:data-p3="${r.byPriority['P3 - Medium'] ?: 0}"
+                            th:data-p4="${r.byPriority['P4 - Low'] ?: 0}"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-bar-chart me-1"></i>Incidents by service</div>
+                <div class="card-body" style="min-height: 250px;">
+                    <div id="serviceDataList" class="d-none">
+                        <span th:each="entry : ${r.byService}"
+                              th:data-label="${entry.key}"
+                              th:data-count="${entry.value}"></span>
+                    </div>
+                    <canvas id="serviceChart" style="max-height: 230px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Breakdowns -->
     <div class="row g-4">
         <div class="col-md-6 col-xl-3" th:each="b : ${r.breakdowns()}">
@@ -88,5 +117,66 @@
         </div>
     </div>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof Chart === 'undefined') return;
+
+        const pCanvas = document.getElementById('priorityChart');
+        if (pCanvas) {
+            const p1 = Number(pCanvas.dataset.p1 || 0);
+            const p2 = Number(pCanvas.dataset.p2 || 0);
+            const p3 = Number(pCanvas.dataset.p3 || 0);
+            const p4 = Number(pCanvas.dataset.p4 || 0);
+            if (p1 + p2 + p3 + p4 > 0) {
+                new Chart(pCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['P1 - Critical', 'P2 - High', 'P3 - Medium', 'P4 - Low'],
+                        datasets: [{
+                            data: [p1, p2, p3, p4],
+                            backgroundColor: ['#dc3545', '#ffc107', '#0dcaf0', '#6c757d'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+        }
+
+        const sCanvas = document.getElementById('serviceChart');
+        const dataSpans = document.querySelectorAll('#serviceDataList span');
+        if (sCanvas && dataSpans.length > 0) {
+            const labels = [];
+            const counts = [];
+            dataSpans.forEach(function(el) {
+                labels.push(el.dataset.label);
+                counts.push(Number(el.dataset.count || 0));
+            });
+            new Chart(sCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Incidents',
+                        data: counts,
+                        backgroundColor: '#0d6efd',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>

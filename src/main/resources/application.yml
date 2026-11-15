@@ -39,3 +39,6 @@ itsm:
   duplicates:
     # Similarity (0-1) at which a new incident is flagged as a possible duplicate
     threshold: 0.5
+  ai:
+    gemini-api-key: ${GEMINI_API_KEY:}
+    model: gemini-1.5-flash

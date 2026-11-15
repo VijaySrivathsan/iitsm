@@ -14,7 +14,8 @@
         </select></div>
         <div class="col-md-3"><input class="form-control form-control-sm" name="incident" th:value="${incident}" placeholder="Incident (e.g. INC1001)" aria-label="Incident"></div>
         <div class="col-md-3"><button class="btn btn-sm btn-primary" type="submit">Filter</button>
-            <a class="btn btn-sm btn-link" th:href="@{/admin/audit}">Clear</a></div>
+            <a class="btn btn-sm btn-link" th:href="@{/admin/audit}">Clear</a>
+            <a class="btn btn-sm btn-outline-success ms-1" th:href="@{/admin/audit/export(actor=${actor},action=${action},incident=${incident})}"><i class="bi bi-download me-1"></i>Export CSV</a></div>
     </form>
     <div class="card"><div class="card-body p-0"><div class="table-responsive">
         <table class="table table-sm align-middle mb-0">

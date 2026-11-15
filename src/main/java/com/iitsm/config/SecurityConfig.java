@@ -32,9 +32,9 @@ public class SecurityConfig {
                 if (h2Console) {
                     auth.requestMatchers("/h2-console/**").permitAll();
                 }
-                auth.requestMatchers("/employee/**").hasRole("EMPLOYEE")
-                    .requestMatchers("/tech/**").hasRole("TECHNICIAN")
-                    .requestMatchers("/admin/**").hasRole("ADMIN")
+                auth.requestMatchers("/employee", "/employee/**").hasRole("EMPLOYEE")
+                    .requestMatchers("/tech", "/tech/**").hasRole("TECHNICIAN")
+                    .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated();
             })
             .formLogin(form -> form

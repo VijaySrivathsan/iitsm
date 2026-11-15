@@ -8,6 +8,7 @@ import com.iitsm.domain.incident.Urgency;
 import com.iitsm.domain.user.User;
 import com.iitsm.intelligence.DuplicateDetectionService;
 import com.iitsm.intelligence.EscalationService;
+import com.iitsm.intelligence.AiIncidentAdvisor;
 import com.iitsm.intelligence.ResolutionSuggester;
 import com.iitsm.security.CurrentUserProvider;
 import com.iitsm.service.CatalogService;
@@ -44,12 +45,13 @@ public class IncidentController {
     private final EscalationService escalation;
     private final ResolutionSuggester resolutionSuggester;
     private final CurrentUserProvider currentUser;
+    private final AiIncidentAdvisor aiAdvisor;
     private final Clock clock;
 
     public IncidentController(IncidentService incidents, AssignmentService assignment, AuditService audit,
                               CatalogService catalog, DuplicateDetectionService duplicates,
                               EscalationService escalation, ResolutionSuggester resolutionSuggester,
-                              CurrentUserProvider currentUser, Clock clock) {
+                              CurrentUserProvider currentUser, AiIncidentAdvisor aiAdvisor, Clock clock) {
         this.incidents = incidents;
         this.assignment = assignment;
         this.audit = audit;
@@ -58,6 +60,7 @@ public class IncidentController {
         this.escalation = escalation;
         this.resolutionSuggester = resolutionSuggester;
         this.currentUser = currentUser;
+        this.aiAdvisor = aiAdvisor;
         this.clock = clock;
     }
 
@@ -89,6 +92,8 @@ public class IncidentController {
         if (incident.getStatus().isOpen() && worksOnIt) {
             model.addAttribute("suggestions", resolutionSuggester.suggestFor(incident)); // feature G
         }
+        model.addAttribute("downstreamServices", catalog.findDownstreamServices(incident.getService()));
+        model.addAttribute("aiAdvice", aiAdvisor.analyze(incident));
         return "incidents/detail";
     }
 
