@@ -5,6 +5,13 @@ import com.iitsm.domain.Checks;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * An IT service the organisation runs (Payment Gateway, Email, VPN, ...). Its business criticality
@@ -26,6 +33,12 @@ public class ITService extends BaseEntity {
     private int businessCriticality;
 
     private boolean active = true;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "service_dependencies",
+            joinColumns = @JoinColumn(name = "service_id"),
+            inverseJoinColumns = @JoinColumn(name = "depends_on_id"))
+    private Set<ITService> dependencies = new HashSet<>();
 
     protected ITService() {
     }
@@ -65,6 +78,25 @@ public class ITService extends BaseEntity {
 
     public boolean isActive() {
         return active;
+    }
+
+    public Set<ITService> getDependencies() {
+        return Collections.unmodifiableSet(dependencies);
+    }
+
+    public void addDependency(ITService service) {
+        Checks.requireNonNull(service, "Dependency service");
+        if (!service.equals(this)) {
+            this.dependencies.add(service);
+        }
+    }
+
+    public void removeDependency(ITService service) {
+        this.dependencies.remove(service);
+    }
+
+    public void clearDependencies() {
+        this.dependencies.clear();
     }
 
     @Override

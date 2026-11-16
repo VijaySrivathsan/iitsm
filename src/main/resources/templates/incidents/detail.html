@@ -74,6 +74,25 @@
                 </ul>
             </div>
 
+            <!-- AI Advisor & Root-Cause Hypothesizer (Technical Depth / API Integration) -->
+            <div class="card mb-4 border-primary" th:if="${aiAdvice != null}">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-robot me-1"></i>AI Incident Advisor &amp; Root-Cause Hypothesizer</span>
+                    <span class="badge text-bg-light" th:text="${aiAdvice.isRemoteAi} ? 'Google Gemini API' : 'Expert System Heuristic'">Advisor</span>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2" th:text="${aiAdvice.summary}">AI Summary</p>
+                    <div class="alert alert-light border mb-2 py-2">
+                        <strong class="text-primary"><i class="bi bi-search me-1"></i>Hypothesized Root Cause:</strong>
+                        <div class="small mt-1 text-muted" th:text="${aiAdvice.rootCauseHypothesis}">Hypothesis</div>
+                    </div>
+                    <strong class="small text-muted d-block mb-1">Recommended Investigation Steps:</strong>
+                    <ul class="mb-0 ps-3 small">
+                        <li th:each="step : ${aiAdvice.investigationSteps}" th:text="${step}">Step</li>
+                    </ul>
+                </div>
+            </div>
+
             <div class="card mb-4" th:if="${incident.resolution != null}">
                 <div class="card-header text-success"><i class="bi bi-check2-circle me-1"></i>Resolution</div>
                 <div class="card-body">
@@ -170,6 +189,25 @@
                         <div class="text-muted" th:text="'Same service · ' + ${@fmt.dateTime(o.createdAt)} + ' · ' + ${o.status}">x</div>
                     </li>
                 </ul>
+            </div>
+
+            <!-- Service dependency & impact graph (Innovation challenge) -->
+            <div class="card mb-4" th:if="${incident.service != null and (not #sets.isEmpty(incident.service.dependencies) or not #lists.isEmpty(downstreamServices))}">
+                <div class="card-header"><i class="bi bi-diagram-2 me-1"></i>Service dependency &amp; impact</div>
+                <div class="card-body small">
+                    <div th:if="${not #sets.isEmpty(incident.service.dependencies)}" class="mb-2">
+                        <strong class="text-muted d-block mb-1">Upstream dependencies (this service relies on):</strong>
+                        <span th:each="dep : ${incident.service.dependencies}" class="badge bg-light text-dark border me-1">
+                            <i class="bi bi-arrow-up-right me-1"></i><span th:text="${dep.name}">Service</span>
+                        </span>
+                    </div>
+                    <div th:if="${not #lists.isEmpty(downstreamServices)}">
+                        <strong class="text-danger d-block mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Downstream impact (services affected):</strong>
+                        <span th:each="ds : ${downstreamServices}" class="badge bg-danger text-light me-1">
+                            <i class="bi bi-arrow-down-right me-1"></i><span th:text="${ds.name}">Downstream</span>
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <div class="card" th:if="${not #sets.isEmpty(can)}">

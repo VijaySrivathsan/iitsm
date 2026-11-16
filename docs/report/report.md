@@ -212,7 +212,10 @@ Priority calculation (`WeightedScoringPriorityStrategy`) is also automated, and 
 - incident similarity detection (A)
 - predictive SLA violation detection (E)
 - automated escalation (C)
-- analytics dashboard
+- service dependency graph (upstream dependencies & downstream impact analysis)
+- external AI & Google Gemini API integration (automated root-cause hypothesis & triage advice)
+- interactive operational analytics dashboard (Chart.js visual charts)
+- RFC-4180 audit trail and incident search CSV export
 - event-driven internal architecture
 
 ---
@@ -253,7 +256,7 @@ Priority calculation (`WeightedScoringPriorityStrategy`) is also automated, and 
 
 ## 9. Testing
 
-There are **241 automated tests** (`mvn test`), all passing. **97 meaningful test cases are documented** in [`docs/test-cases.md`](../test-cases.md), covering every category the brief asks for:
+There are **245 automated tests** (`mvn test`), all passing. **101 meaningful test cases are documented** in [`docs/test-cases.md`](../test-cases.md), covering every category the brief asks for:
 
 | Category | Examples |
 |---|---|

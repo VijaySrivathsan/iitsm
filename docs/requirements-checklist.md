@@ -31,6 +31,10 @@ NEW → CLASSIFIED → ASSIGNED → ACKNOWLEDGED → IN_PROGRESS → RESOLVED �
 - [x] D. Smart technician recommendation (scoring strategy) [M5]
 - [x] F. Category suggestion from description (keywords) [M9]
 - [x] G. Suggested resolution from similar past incidents [M9]
+- [x] H. AI Incident Advisor & Root-Cause Hypothesizer (Google Gemini API with local rule-based heuristic fallback) [M9+]
+- [x] I. Service Dependency Graph (upstream dependencies & downstream impact analysis) [M9+]
+- [x] J. Interactive Visual Analytics (Chart.js Priority Distribution & Service Breakdown) [M9+]
+- [x] K. RFC-4180 Audit Trail & Search CSV Export [M9+]
 
 ## Exceptions to handle
 Invalid login, unauthorized op, invalid incident, invalid state transition, technician unavailable, workload exceeded, service not found, missing SLA config, duplicate incident, DB failure, invalid input.

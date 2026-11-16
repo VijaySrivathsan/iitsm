@@ -111,4 +111,18 @@ Known limitation: text similarity ignores word order and meaning, so "payment wo
 `HistoricalIncidentSeeder` creates its 28 past incidents through the same constructors, `PriorityService`, `SlaService` and State-pattern methods as live incidents, just with past timestamps. Seeded data therefore always follows the business rules, and the dashboards, search and feature G work from the very first start. The history is numbered below INC1001 and is at least 2 days old, so it never interferes with the live demo (duplicate detection only looks back 24 h).
 For the video, a Payment Gateway P1 override (respond in 2 min, resolve in 10) and a 20 s monitor interval make the escalation chain visible within minutes. This also demonstrates service-specific SLA policies.
 
-<!-- Add new entries below (D22, D23, ...) -->
+## D22. Chart.js visual analytics on the Admin Dashboard
+Alternatives: Server-rendered SVG charts, text-only tables, external Grafana dashboard.
+Why: Chart.js runs client-side with a single lightweight CDN script and renders beautiful responsive HTML5 canvases for priority breakdown (doughnut chart) and service distribution (bar chart). It reads the data already prepared by `ReportService` and directly fulfills the "Real-time operational dashboard, Analytics and visualization" innovation challenge without backend overhead.
+
+## D23. Service dependency graph via self-referencing @ManyToMany
+Alternatives: Flat services list, separate dependency table with string foreign keys.
+Why: Demonstrates OOP aggregation and graph traversal. `ITService` defines a self-referencing `@ManyToMany` set `dependencies` mapped to `service_dependencies`. Calling `findByDependenciesContaining()` navigates the graph in reverse to find downstream services impacted by an outage, giving technicians and admins instant impact analysis when investigating incidents.
+
+## D24. RFC-4180 compliant CSV export for audit logs and search results
+Alternatives: Third-party Apache POI / OpenCSV library.
+Why: Built with zero external dependencies using Java string builders and HTTP streaming headers (`Content-Disposition: attachment`). Escapes quotes and commas according to RFC-4180. Lets administrators export historical audit compliance logs and custom incident query results directly to spreadsheets.
+
+## D25. External AI Incident Advisor with Google Gemini API & local heuristic fallback
+Alternatives: Hard-coded advice text or external Python AI microservice.
+Why: Directly satisfies the evaluation rubric's requirement for "use of APIs (Google API, any other), integration with third-party services". Uses Java 21's native `HttpClient` with non-blocking timeout handling. When `GEMINI_API_KEY` is provided, it calls Google's `generateContent` REST endpoint for automated triage and root-cause hypothesis; when offline or unconfigured, it seamlessly falls back to a deterministic rule-based expert heuristic so the application remains 100% stable in all environments.

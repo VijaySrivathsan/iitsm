@@ -2,6 +2,9 @@ package com.iitsm.web;
 
 import com.iitsm.assignment.AssignmentService;
 import com.iitsm.audit.AuditService;
+import com.iitsm.domain.audit.AuditEntry;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import com.iitsm.domain.catalog.Category;
 import com.iitsm.domain.incident.Priority;
 import com.iitsm.domain.user.NewUser;
@@ -257,7 +260,7 @@ public class AdminController {
     }
 
     @PostMapping("/strategy")
-    public String changeStrategy(@RequestParam String name, RedirectAttributes redirect) {
+    public String changeStrategy(@RequestParam(name = "name") String name, RedirectAttributes redirect) {
         assignment.changeStrategy(name, me());
         redirect.addFlashAttribute("success", "Assignment strategy changed to '" + name + "'.");
         return "redirect:/admin/strategy";
@@ -266,8 +269,8 @@ public class AdminController {
     // ---------------------------------------------------------------- audit & outbox
 
     @GetMapping("/audit")
-    public String audit(@RequestParam(required = false) String actor, @RequestParam(required = false) String action,
-                        @RequestParam(required = false) String incident, Model model) {
+    public String audit(@RequestParam(name = "actor", required = false) String actor, @RequestParam(name = "action", required = false) String action,
+                        @RequestParam(name = "incident", required = false) String incident, Model model) {
         model.addAttribute("entries", audit.recent(actor, action, incident, me()));
         model.addAttribute("actions", IncidentEventType.values());
         model.addAttribute("actor", actor);
@@ -280,6 +283,37 @@ public class AdminController {
     public String outbox(Model model) {
         model.addAttribute("messages", notifications.outbox(me()));
         return "admin/outbox";
+    }
+
+    @GetMapping(value = "/audit/export", produces = "text/csv")
+    public ResponseEntity<String> exportAuditCsv(@RequestParam(name = "actor", required = false) String actor,
+                                                 @RequestParam(name = "action", required = false) String action,
+                                                 @RequestParam(name = "incident", required = false) String incident) {
+        List<AuditEntry> entries = audit.recent(actor, action, incident, me());
+        StringBuilder csv = new StringBuilder();
+        csv.append("Timestamp,Actor,Action,Incident,Previous Status,New Status,Description\r\n");
+        for (AuditEntry e : entries) {
+            csv.append(escapeCsv(e.getTimestamp().toString())).append(",")
+               .append(escapeCsv(e.getActor())).append(",")
+               .append(escapeCsv(e.getAction())).append(",")
+               .append(escapeCsv(e.getIncidentNumber())).append(",")
+               .append(escapeCsv(e.getPreviousStatus() != null ? e.getPreviousStatus().name() : "")).append(",")
+               .append(escapeCsv(e.getNewStatus() != null ? e.getNewStatus().name() : "")).append(",")
+               .append(escapeCsv(e.getDescription())).append("\r\n");
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"audit-log.csv\"")
+                .body(csv.toString());
+    }
+
+    private static String escapeCsv(Object val) {
+        if (val == null) return "";
+        String s = val.toString();
+        if (val == null) return "";
+        if (s.contains(",") || s.contains("\"") || s.contains("\n") || s.contains("\r")) {
+            return "\"" + s.replace("\"", "\"\"") + "\"";
+        }
+        return s;
     }
 
     private User me() {

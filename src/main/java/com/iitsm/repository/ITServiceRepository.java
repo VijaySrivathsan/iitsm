@@ -14,4 +14,6 @@ public interface ITServiceRepository extends JpaRepository<ITService, Long> {
     Optional<ITService> findByNameIgnoreCase(String name);
 
     List<ITService> findByActiveTrueOrderByNameAsc();
+
+    List<ITService> findByDependenciesContaining(ITService service);
 }

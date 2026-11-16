@@ -1,6 +1,10 @@
 package com.iitsm.web;
 
+import com.iitsm.domain.incident.Incident;
 import com.iitsm.domain.incident.IncidentStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import java.util.List;
 import com.iitsm.domain.incident.Priority;
 import com.iitsm.domain.sla.SlaStatus;
 import com.iitsm.domain.user.Administrator;
@@ -39,16 +43,16 @@ public class SearchController {
     }
 
     @GetMapping("/search")
-    public String search(@RequestParam(required = false) String number,
-                         @RequestParam(required = false) String text,
-                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-                         @RequestParam(required = false) IncidentStatus status,
-                         @RequestParam(required = false) Priority priority,
-                         @RequestParam(required = false) Long categoryId,
-                         @RequestParam(required = false) Long serviceId,
-                         @RequestParam(required = false) Long technicianId,
-                         @RequestParam(required = false) SlaStatus slaStatus,
+    public String search(@RequestParam(name = "number", required = false) String number,
+                         @RequestParam(name = "text", required = false) String text,
+                         @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                         @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                         @RequestParam(name = "status", required = false) IncidentStatus status,
+                         @RequestParam(name = "priority", required = false) Priority priority,
+                         @RequestParam(name = "categoryId", required = false) Long categoryId,
+                         @RequestParam(name = "serviceId", required = false) Long serviceId,
+                         @RequestParam(name = "technicianId", required = false) Long technicianId,
+                         @RequestParam(name = "slaStatus", required = false) SlaStatus slaStatus,
                          Model model) {
         User me = currentUser.currentUser();
         IncidentSearchCriteria criteria = new IncidentSearchCriteria(number, text, from, to, status, priority,
@@ -65,5 +69,47 @@ public class SearchController {
             model.addAttribute("technicians", users.allTechnicians());
         }
         return "search";
+    }
+
+    @GetMapping(value = "/search/export", produces = "text/csv")
+    public ResponseEntity<String> exportCsv(@RequestParam(name = "number", required = false) String number,
+                                            @RequestParam(name = "text", required = false) String text,
+                                            @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                            @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                            @RequestParam(name = "status", required = false) IncidentStatus status,
+                                            @RequestParam(name = "priority", required = false) Priority priority,
+                                            @RequestParam(name = "categoryId", required = false) Long categoryId,
+                                            @RequestParam(name = "serviceId", required = false) Long serviceId,
+                                            @RequestParam(name = "technicianId", required = false) Long technicianId,
+                                            @RequestParam(name = "slaStatus", required = false) SlaStatus slaStatus) {
+        User me = currentUser.currentUser();
+        IncidentSearchCriteria criteria = new IncidentSearchCriteria(number, text, from, to, status, priority,
+                categoryId, serviceId, technicianId, slaStatus);
+        List<Incident> results = search.search(criteria, me);
+        StringBuilder csv = new StringBuilder();
+        csv.append("Number,Title,Status,Priority,Service,Category,Created At,Assignee,SLA Status\r\n");
+        for (Incident i : results) {
+            csv.append(escapeCsv(i.getNumber())).append(",")
+               .append(escapeCsv(i.getTitle())).append(",")
+               .append(escapeCsv(i.getStatus().name())).append(",")
+               .append(escapeCsv(i.getPriority() != null ? i.getPriority().name() : "")).append(",")
+               .append(escapeCsv(i.getService().getName())).append(",")
+               .append(escapeCsv(i.getCategory() != null ? i.getCategory().getName() : "")).append(",")
+               .append(escapeCsv(i.getCreatedAt().toString())).append(",")
+               .append(escapeCsv(i.getAssignee() != null ? i.getAssignee().getFullName() : "")).append(",")
+               .append(escapeCsv(i.getSlaRecord().getStatus().name())).append("\r\n");
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"incidents-export.csv\"")
+                .body(csv.toString());
+    }
+
+    private static String escapeCsv(Object val) {
+        if (val == null) return "";
+        String s = val.toString();
+        if (s.contains(",") || s.contains("\"") || s.contains("\n") || s.contains("\r")) {
+            return "\"" + s.replace("\"", "\"\"") + "\"";
+        }
+        return s;
     }
 }

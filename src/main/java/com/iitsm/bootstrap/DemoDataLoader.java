@@ -99,13 +99,35 @@ public class DemoDataLoader implements ApplicationRunner {
     }
 
     private void seedServices() {
-        services.save(new ITService("Payment Gateway", "Card and UPI payments for customers", 5));
-        services.save(new ITService("Auth / SSO", "Single sign-on for all internal apps", 5));
-        services.save(new ITService("Core Database", "Main PostgreSQL cluster", 4));
-        services.save(new ITService("VPN", "Remote access for employees", 4));
-        services.save(new ITService("Email", "Corporate email and calendar", 3));
+        ITService db = services.save(new ITService("Core Database", "Main PostgreSQL cluster", 4));
+        ITService auth = services.save(new ITService("Auth / SSO", "Single sign-on for all internal apps", 5));
+        
+        ITService payment = new ITService("Payment Gateway", "Card and UPI payments for customers", 5);
+        payment.addDependency(db);
+        payment.addDependency(auth);
+        services.save(payment);
+
+        ITService vpn = new ITService("VPN", "Remote access for employees", 4);
+        vpn.addDependency(auth);
+        services.save(vpn);
+
+        ITService email = new ITService("Email", "Corporate email and calendar", 3);
+        email.addDependency(auth);
+        services.save(email);
+
+
+
+        ITService hr = new ITService("HR Portal", "Leave, payroll and HR requests", 2);
+        hr.addDependency(auth);
+        hr.addDependency(db);
+        services.save(hr);
+
+
+
+
+
+
         services.save(new ITService("Cloud Storage", "Shared drives and backups", 3));
-        services.save(new ITService("HR Portal", "Leave, payroll and HR requests", 2));
     }
 
     private void seedUsers(Map<String, Category> cat) {

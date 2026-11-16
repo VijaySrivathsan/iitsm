@@ -26,6 +26,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
@@ -122,6 +123,24 @@ class WebSecurityAndFormsTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("/incidents/INC*"))
                 .andExpect(flash().attributeExists("success"));
+    }
+
+    @Test
+    @WithUserDetails("admin")
+    void admin_canExportAuditCsv() throws Exception {
+        mvc.perform(get("/admin/audit/export"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("text/csv")))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("audit-log.csv")));
+    }
+
+    @Test
+    @WithUserDetails("admin")
+    void admin_canExportSearchCsv() throws Exception {
+        mvc.perform(get("/search/export"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("text/csv")))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("incidents-export.csv")));
     }
 
     @Test

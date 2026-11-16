@@ -49,6 +49,25 @@ public class CatalogService {
         return services.findAll(Sort.by("name"));
     }
 
+    @Transactional(readOnly = true)
+    public List<ITService> findDownstreamServices(ITService service) {
+        if (service == null) return List.of();
+        return services.findByDependenciesContaining(service);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void setDependencies(Long serviceId, java.util.Set<Long> dependencyIds) {
+        ITService service = services.findById(serviceId).orElseThrow(() -> new ServiceNotFoundException(serviceId));
+        service.clearDependencies();
+        if (dependencyIds != null) {
+            for (Long depId : dependencyIds) {
+                if (!depId.equals(serviceId)) {
+                    services.findById(depId).ifPresent(service::addDependency);
+                }
+            }
+        }
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     public ITService createService(String name, String description, int criticality) {
         if (services.findByNameIgnoreCase(name.trim()).isPresent()) {
