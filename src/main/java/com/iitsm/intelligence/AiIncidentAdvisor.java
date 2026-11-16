@@ -56,7 +56,7 @@ public class AiIncidentAdvisor {
                 + "Title: " + incident.getTitle() + "\n"
                 + "Description: " + incident.getDescription() + "\n"
                 + "Service: " + incident.getService().getName() + " (Criticality: " + incident.getService().getBusinessCriticality() + "/5)\n"
-                + "Priority: " + incident.getPriority().display() + "\n"
+                + "Priority: " + priorityLabel(incident) + "\n"
                 + "Affected Users: " + incident.getAffectedUsers() + "\n"
                 + "Provide concise advice: 1) Executive Summary, 2) Recommended Actions, 3) Probable Root Cause.";
 
@@ -91,11 +91,13 @@ public class AiIncidentAdvisor {
 
     private AiAdvice localHeuristic(Incident incident) {
         String service = incident.getService().getName();
-        String priority = incident.getPriority().display();
         int users = incident.getAffectedUsers();
 
-        String summary = String.format("Automated triage for %s on '%s'. Priority score indicates %s severity impacting ~%d users.",
-                incident.getNumber(), service, priority, users);
+        String summary = incident.getPriority() == null
+                ? String.format("Automated triage for %s on '%s'. Incident is not yet prioritised (awaiting classification); ~%d users affected.",
+                        incident.getNumber(), service, users)
+                : String.format("Automated triage for %s on '%s'. Priority score indicates %s severity impacting ~%d users.",
+                        incident.getNumber(), service, priorityLabel(incident), users);
 
         List<String> steps = new ArrayList<>();
         steps.add("Check health and uptime telemetry for " + service);
@@ -117,6 +119,11 @@ public class AiIncidentAdvisor {
         String rootCause = "Probable cause: Resource exhaustion or transient dependency failure on upstream " + service + " components.";
 
         return new AiAdvice(summary, rootCause, steps, false);
+    }
+
+    /** Incidents have no priority until an admin classifies them (status NEW). */
+    private static String priorityLabel(Incident incident) {
+        return incident.getPriority() == null ? "not yet classified" : incident.getPriority().display();
     }
 
     private static String escapeJson(String s) {
