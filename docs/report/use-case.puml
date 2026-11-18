@@ -9,6 +9,11 @@ actor Technician as T
 actor "Team lead" as L
 actor Administrator as A
 actor "System\n(scheduler)" as S
+actor "User" as U <<abstract>>
+
+E --|> U
+T --|> U
+A --|> U
 
 T <|-- L
 
@@ -47,16 +52,12 @@ rectangle "I-ITSM" {
   usecase "Suggest category / resolution" as UC35
 }
 
-E --> UC1
 E --> UC2
 E --> UC3
 E --> UC4
 E --> UC5
 E --> UC6
-E --> UC21
-E --> UC22
 
-T --> UC1
 T --> UC7
 T --> UC8
 T --> UC9
@@ -64,12 +65,9 @@ T --> UC10
 T --> UC11
 T --> UC12
 T --> UC13
-T --> UC21
-T --> UC22
 
 L --> UC34 : receives
 
-A --> UC1
 A --> UC14
 A --> UC15
 A --> UC16
@@ -77,9 +75,11 @@ A --> UC17
 A --> UC18
 A --> UC19
 A --> UC20
-A --> UC21
-A --> UC22
 A --> UC12
+
+U --> UC1
+U --> UC21
+U --> UC22
 
 S --> UC33
 S --> UC34

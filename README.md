@@ -25,7 +25,7 @@ Around that lifecycle it provides:
 | Demo accounts | [docs/demo-accounts.md](docs/demo-accounts.md) |
 
 ## Tech stack
-Java 21 · Spring Boot 3.5 · Spring MVC + Thymeleaf + Bootstrap 5 · Spring Security · Spring Data JPA / Hibernate · PostgreSQL (demo) / H2 (tests, dev) · JUnit 5 · Maven
+Java 21 · Spring Boot 3.5 · Spring MVC + Thymeleaf + Bootstrap 5.3 (WebJars, light / dark theme) + Chart.js · Spring Security · Spring Data JPA / Hibernate · PostgreSQL (demo) / H2 (tests, dev) · JUnit 5 · Maven
 
 ## Prerequisites
 - JDK 21: `java -version`.

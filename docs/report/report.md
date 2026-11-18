@@ -2,8 +2,8 @@
 
 **CS F213 / MAC F212 Object-Oriented Programming, Semester I 2026-27, project report**
 
-> Draft written from the actual code. Fill in the group number, member names and the repository link, edit the wording to your own voice, and export to PDF.
-> Diagrams: [diagrams.md](diagrams.md) (Mermaid) and [use-case.puml](use-case.puml) (PlantUML).
+> **Before submitting, delete this note:** fill in the group number and the member rows below and in section 12, then rebuild `report.pdf` with `docs/report/build-pdf.cjs` (instructions at the top of that file).
+> Diagrams: [diagrams.md](diagrams.md), included as the appendix of the PDF.
 
 | | |
 |---|---|
@@ -81,8 +81,11 @@
   - a different home page per role;
   - only the actions the user may take right now are shown;
   - friendly error banners and 403/404 pages;
-  - SLA countdowns.
-- **Testability:** a clock is injected everywhere, so time-based rules are tested without waiting. There are 240+ automated tests.
+  - SLA countdowns;
+  - light and dark themes (or follow the system setting), remembered per browser;
+  - keyboard access: a skip-to-content link, visible focus outlines and a `/` shortcut to search;
+  - works at phone width with no sideways scrolling.
+- **Testability:** a clock is injected everywhere, so time-based rules are tested without waiting. There are 249 automated tests.
 - **Portability:** H2 for tests and development; PostgreSQL for the demo through Docker Compose. JPA keeps the code database-independent.
 
 ### 2.3 User roles
@@ -113,7 +116,7 @@ The application is a layered Spring Boot monolith (diagram: [diagrams.md §1](di
 The cross-cutting concerns (audit, notifications) hang off an internal event bus.
 
 **Why this architecture:**
-- It matches the brief's "Choice 1: layered architecture".
+- It is the simplest structure that still separates presentation, business logic and persistence.
 - It keeps every class easy to explain.
 - It suits a team of 3-5 working for three weeks.
 
@@ -123,7 +126,7 @@ The event bus and the strategy interfaces mark where it could later be split int
 
 ## 4. UML diagrams
 
-- **Use-case diagram:** [use-case.puml](use-case.puml). Actors are Employee, Technician, Team lead (a technician), Administrator, and the System scheduler.
+- **Use-case diagram:** [diagrams.md §0](diagrams.md) (PlantUML source also in [use-case.puml](use-case.puml)). Actors are Employee, Technician, Team lead (a technician), Administrator, and the System scheduler.
 - **Class diagrams:** [diagrams.md §2-3](diagrams.md). They show classes, attributes, methods, interfaces, inheritance, associations, composition and aggregation.
 - **State diagram:** [diagrams.md §4](diagrams.md).
 - **Sequence diagram for workflow 1:** [diagrams.md §6](diagrams.md).
@@ -149,7 +152,8 @@ The event bus and the strategy interfaces mark where it could later be split int
 |---|---|
 | Language | Java 21 |
 | Framework | Spring Boot 3.5 (Web MVC, Security, Data JPA, Validation, Scheduling) |
-| UI | Thymeleaf server-side templates + Bootstrap 5 + Bootstrap Icons; a small amount of JavaScript for category suggestion |
+| UI | Thymeleaf server-side templates + Bootstrap 5.3 + Bootstrap Icons, served from the app through WebJars (works offline); Chart.js 4.4 for dashboard charts; light / dark / system colour theme; a small amount of JavaScript for category suggestion, theme switching and shortcuts |
+| External APIs | Google Gemini `generateContent` REST API (optional, enabled by `GEMINI_API_KEY`; falls back to local rules) |
 | Persistence | Hibernate / JPA; PostgreSQL 16 (Docker Compose) for the demo; H2 in-memory for tests and development |
 | Testing | JUnit 5, AssertJ, Spring Boot Test, MockMvc, Spring Security Test |
 | Build | Maven |
@@ -157,7 +161,7 @@ The event bus and the strategy interfaces mark where it could later be split int
 
 The brief's nine questions:
 1. **Why this language?** Java is the course language and strongly object-oriented: interfaces, abstract classes, enums with behaviour, records for value objects, and sealed type checks with pattern matching. Each OOP requirement maps directly onto a language feature.
-2. **Why this frontend technology?** Thymeleaf renders pages on the server with Spring Security integration (`sec:authorize`), so each role gets a different GUI with no separate frontend project. That was the right trade-off for a three-week deadline. Bootstrap gives a clean, responsive look with little CSS.
+2. **Why this frontend technology?** Thymeleaf renders pages on the server with Spring Security integration (`sec:authorize`), so each role gets a different GUI with no separate frontend project. That was the right trade-off for a three-week deadline. Bootstrap gives a clean, responsive look with little CSS, and its 5.3 colour modes let us offer a dark theme by redefining a small set of CSS colour tokens. The front-end libraries are packaged as WebJars, so they are versioned in `pom.xml` like any other dependency and the demo does not depend on internet access.
 3. **Why this backend technology?** Spring Boot's dependency injection makes the patterns natural:
    - Spring injects every `AssignmentStrategy` into a registry (Strategy);
    - `ApplicationEventPublisher` is a ready-made Observer bus;
@@ -171,7 +175,7 @@ The brief's nine questions:
    - Node/Express or Django: less natural for an OOP-in-Java course.
    - MongoDB: weaker fit for relational, transactional data.
    - Microservices: unnecessary operational complexity at this scale.
-   - Decisions are logged in `docs/decisions.md` (D1-D20).
+   - Decisions are logged in `docs/decisions.md` (D1-D26).
 7. **Advantages and limitations of the stack:**
    - **Advantages:** strong typing; patterns supported by the framework; security out of the box; very testable (injected `Clock`, H2, MockMvc).
    - **Limitations:** server-rendered pages need a reload to update (no live push); open-session-in-view keeps a database connection during rendering; in-memory dashboard aggregation and a simulated email/SMS outbox are fine at this scale but not at very large scale.
@@ -222,7 +226,7 @@ Priority calculation (`WeightedScoringPriorityStrategy`) is also automated, and 
 
 ## 7. Database design
 
-- **ER diagram and schema:** [diagrams.md §5](diagrams.md). There are 11 tables. Hibernate generates the schema from the entities: `create-drop` on H2, `update` on PostgreSQL.
+- **ER diagram and schema:** [diagrams.md §5](diagrams.md). There are 12 tables (including `service_dependencies`, the self-join behind the service dependency graph). Hibernate generates the schema from the entities: `create-drop` on H2, `update` on PostgreSQL.
 - **Key relationships:**
   - an incident has one reporter, one service, at most one category and at most one assignee;
   - an incident owns many notes and escalations;
@@ -256,7 +260,7 @@ Priority calculation (`WeightedScoringPriorityStrategy`) is also automated, and 
 
 ## 9. Testing
 
-There are **245 automated tests** (`mvn test`), all passing. **101 meaningful test cases are documented** in [`docs/test-cases.md`](../test-cases.md), covering every category the brief asks for:
+There are **249 automated tests** (`mvn test`), all passing. **108 meaningful test cases are documented** in [`docs/test-cases.md`](../test-cases.md), covering every category the brief asks for:
 
 | Category | Examples |
 |---|---|
@@ -279,9 +283,10 @@ There are **245 automated tests** (`mvn test`), all passing. **101 meaningful te
 - the three demo workflows were rehearsed;
 - the live background monitor was observed: warning → breach → escalation in about 2 minutes on Payment Gateway.
 
-Two bugs found this way were fixed with regression tests:
+Three bugs found this way were fixed with regression tests:
 - escalation stalled when the only team lead was the assignee;
-- start-up ordering of default SLA policies.
+- start-up ordering of default SLA policies;
+- the incident page failed (HTTP 500) for a NEW incident, because the AI advisor read a priority that is only set at classification (TC106).
 
 ---
 

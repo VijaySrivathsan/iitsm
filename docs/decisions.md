@@ -113,7 +113,7 @@ For the video, a Payment Gateway P1 override (respond in 2 min, resolve in 10) a
 
 ## D22. Chart.js visual analytics on the Admin Dashboard
 Alternatives: Server-rendered SVG charts, text-only tables, external Grafana dashboard.
-Why: Chart.js runs client-side with a single lightweight CDN script and renders beautiful responsive HTML5 canvases for priority breakdown (doughnut chart) and service distribution (bar chart). It reads the data already prepared by `ReportService` and directly fulfills the "Real-time operational dashboard, Analytics and visualization" innovation challenge without backend overhead.
+Why: Chart.js runs client-side with a single lightweight script (pinned to 4.4.1 and served from a WebJar, see D26) and renders beautiful responsive HTML5 canvases for priority breakdown (doughnut chart) and service distribution (bar chart). It reads the data already prepared by `ReportService` and directly fulfills the "Real-time operational dashboard, Analytics and visualization" innovation challenge without backend overhead.
 
 ## D23. Service dependency graph via self-referencing @ManyToMany
 Alternatives: Flat services list, separate dependency table with string foreign keys.
@@ -126,3 +126,7 @@ Why: Built with zero external dependencies using Java string builders and HTTP s
 ## D25. External AI Incident Advisor with Google Gemini API & local heuristic fallback
 Alternatives: Hard-coded advice text or external Python AI microservice.
 Why: Directly satisfies the evaluation rubric's requirement for "use of APIs (Google API, any other), integration with third-party services". Uses Java 21's native `HttpClient` with non-blocking timeout handling. When `GEMINI_API_KEY` is provided, it calls Google's `generateContent` REST endpoint for automated triage and root-cause hypothesis; when offline or unconfigured, it seamlessly falls back to a deterministic rule-based expert heuristic so the application remains 100% stable in all environments.
+
+## D26. Dark mode with CSS colour tokens; front-end libraries as WebJars
+Alternatives: a second stylesheet for dark mode; keep loading Bootstrap and Chart.js from a CDN.
+Why: Bootstrap 5.3 switches its own components with `data-bs-theme`, so our `app.css` only defines colour tokens once per theme and every badge, chart and timeline uses the tokens. The choice (light / dark / system) is stored in the browser and applied by a tiny inline script before the first paint, so there is no white flash. WebJars put the libraries in `pom.xml` with exact versions and serve them from the app, so the UI works offline (important for a recorded demo) and a library update can never change the UI unexpectedly.
