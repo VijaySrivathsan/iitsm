@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Something went wrong')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
-<main class="container py-4">
+<main id="main" class="container py-4">
     <div th:replace="~{fragments/layout :: flash}"></div>
     <div class="text-center py-5">
         <i class="bi bi-cloud-slash display-3 text-warning"></i>
@@ -12,5 +12,6 @@
         <a class="btn btn-primary" th:href="@{/dashboard}">Back to my dashboard</a>
     </div>
 </main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>
 </html>

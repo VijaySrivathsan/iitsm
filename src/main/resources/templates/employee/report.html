@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Report an incident')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
-<main class="container py-4">
+<main id="main" class="container py-4">
     <div th:replace="~{fragments/layout :: flash}"></div>
     <h1 class="h4 mb-3">Report an incident</h1>
     <div class="card"><div class="card-body">
@@ -64,6 +64,7 @@
         </form>
     </div></div>
 </main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
 <script>
     // Feature F: suggest a category from the description while the employee types.
     (function () {

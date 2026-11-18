@@ -25,6 +25,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -224,5 +225,20 @@ class WebSecurityAndFormsTest {
         mvc.perform(post("/admin/strategy").with(csrf()).param("name", "load"))
                 .andExpect(redirectedUrl("/admin/strategy"))
                 .andExpect(flash().attributeExists("success"));
+    }
+
+    @Test
+    void frontEndAssets_areServedLocallyWithoutLogin() throws Exception {
+        mvc.perform(get("/webjars/bootstrap/5.3.3/dist/css/bootstrap.min.css")).andExpect(status().isOk());
+        mvc.perform(get("/webjars/chart.js/4.4.1/dist/chart.umd.js")).andExpect(status().isOk());
+        mvc.perform(get("/js/app.js")).andExpect(status().isOk());
+    }
+
+    @Test
+    void loginPage_offersThemeSwitcherAndLoadsNoCdnAssets() throws Exception {
+        String html = mvc.perform(get("/login")).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-theme-value=\"dark\"")))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(html).doesNotContain("cdn.jsdelivr.net");
     }
 }

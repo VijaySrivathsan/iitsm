@@ -3,13 +3,13 @@
 <head th:replace="~{fragments/layout :: head('Outbox')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
-<main class="container py-4">
+<main id="main" class="container py-4">
     <div th:replace="~{fragments/layout :: flash}"></div>
     <h1 class="h4 mb-1">Email / SMS outbox</h1>
     <p class="text-muted">Messages handed to the simulated email and SMS gateways (Adapter pattern; no real messages are sent).</p>
     <div class="card"><div class="card-body p-0"><div class="table-responsive">
         <table class="table table-sm align-middle mb-0">
-            <thead class="table-light"><tr><th>Time</th><th>Channel</th><th>To</th><th>Message</th></tr></thead>
+            <thead><tr><th>Time</th><th>Channel</th><th>To</th><th>Message</th></tr></thead>
             <tbody>
             <tr th:each="m : ${messages}">
                 <td class="small text-nowrap" th:text="${@fmt.dateTime(m.sentAt)}">time</td>
@@ -22,5 +22,6 @@
         </table>
     </div></div></div>
 </main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>
 </html>

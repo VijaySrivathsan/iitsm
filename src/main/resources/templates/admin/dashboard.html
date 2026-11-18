@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Overview')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
-<main class="container py-4" th:with="r=${report}">
+<main id="main" class="container py-4" th:with="r=${report}">
     <div th:replace="~{fragments/layout :: flash}"></div>
     <h1 class="h4 mb-3">Overview</h1>
 
@@ -72,30 +72,30 @@
         </div>
     </div>
 
-    <!-- Visual Analytics (Chart.js) -->
+    <!-- Visual analytics (Chart.js, colours follow the light/dark theme) -->
     <div class="row g-4 mb-4">
         <div class="col-lg-4">
             <div class="card h-100">
                 <div class="card-header"><i class="bi bi-pie-chart me-1"></i>Priority distribution</div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 250px;">
-                    <canvas id="priorityChart" style="max-height: 230px;"
-                            th:data-p1="${r.byPriority['P1 - Critical'] ?: 0}"
-                            th:data-p2="${r.byPriority['P2 - High'] ?: 0}"
-                            th:data-p3="${r.byPriority['P3 - Medium'] ?: 0}"
-                            th:data-p4="${r.byPriority['P4 - Low'] ?: 0}"></canvas>
+                <div class="card-body">
+                    <div class="chart-box">
+                        <canvas id="priorityChart" role="img" aria-label="Incidents by priority"
+                                th:data-p1="${r.byPriority['P1 - Critical'] ?: 0}"
+                                th:data-p2="${r.byPriority['P2 - High'] ?: 0}"
+                                th:data-p3="${r.byPriority['P3 - Medium'] ?: 0}"
+                                th:data-p4="${r.byPriority['P4 - Low'] ?: 0}"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-lg-8">
             <div class="card h-100">
                 <div class="card-header"><i class="bi bi-bar-chart me-1"></i>Incidents by service</div>
-                <div class="card-body" style="min-height: 250px;">
+                <div class="card-body">
                     <div id="serviceDataList" class="d-none">
-                        <span th:each="entry : ${r.byService}"
-                              th:data-label="${entry.key}"
-                              th:data-count="${entry.value}"></span>
+                        <span th:each="entry : ${r.byService}" th:data-label="${entry.key}" th:data-count="${entry.value}"></span>
                     </div>
-                    <canvas id="serviceChart" style="max-height: 230px;"></canvas>
+                    <div class="chart-box"><canvas id="serviceChart" role="img" aria-label="Incidents by service"></canvas></div>
                 </div>
             </div>
         </div>
@@ -117,65 +117,65 @@
         </div>
     </div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/webjars/chart.js/4.4.1/dist/chart.umd.js}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         if (typeof Chart === 'undefined') return;
+        var charts = [];
+        var css = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
 
-        const pCanvas = document.getElementById('priorityChart');
-        if (pCanvas) {
-            const p1 = Number(pCanvas.dataset.p1 || 0);
-            const p2 = Number(pCanvas.dataset.p2 || 0);
-            const p3 = Number(pCanvas.dataset.p3 || 0);
-            const p4 = Number(pCanvas.dataset.p4 || 0);
-            if (p1 + p2 + p3 + p4 > 0) {
-                new Chart(pCanvas, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['P1 - Critical', 'P2 - High', 'P3 - Medium', 'P4 - Low'],
-                        datasets: [{
-                            data: [p1, p2, p3, p4],
-                            backgroundColor: ['#dc3545', '#ffc107', '#0dcaf0', '#6c757d'],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } }
-                    }
-                });
+        function emptyNote(canvas, text) {
+            canvas.parentElement.innerHTML = '<div class="chart-empty h-100 d-flex align-items-center justify-content-center">' + text + '</div>';
+        }
+
+        function draw() {
+            charts.forEach(function (c) { c.destroy(); });
+            charts = [];
+            var ink = css('--ink-muted'), line = css('--line'), surface = css('--surface');
+            Chart.defaults.color = ink;
+            Chart.defaults.borderColor = line;
+            Chart.defaults.font.family = css('--bs-body-font-family') || 'system-ui';
+
+            var p = document.getElementById('priorityChart');
+            if (p) {
+                var d = ['p1', 'p2', 'p3', 'p4'].map(function (k) { return Number(p.dataset[k] || 0); });
+                if (d.reduce(function (a, b) { return a + b; }, 0) === 0) {
+                    emptyNote(p, 'No incidents yet');
+                } else {
+                    charts.push(new Chart(p, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['P1 - Critical', 'P2 - High', 'P3 - Medium', 'P4 - Low'],
+                            datasets: [{ data: d, backgroundColor: [css('--p1'), css('--p2'), css('--p3'), css('--p4')],
+                                         borderColor: surface, borderWidth: 2 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, cutout: '62%',
+                                   plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } } }
+                    }));
+                }
+            }
+
+            var s = document.getElementById('serviceChart');
+            var spans = document.querySelectorAll('#serviceDataList span');
+            if (s && spans.length === 0) {
+                emptyNote(s, 'No incidents yet');
+            } else if (s) {
+                var labels = [], counts = [];
+                spans.forEach(function (el) { labels.push(el.dataset.label); counts.push(Number(el.dataset.count || 0)); });
+                charts.push(new Chart(s, {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [{ label: 'Incidents', data: counts, backgroundColor: css('--brand-accent'),
+                                                         borderRadius: 6, maxBarThickness: 48 }] },
+                    options: { responsive: true, maintainAspectRatio: false,
+                               scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } },
+                               plugins: { legend: { display: false } } }
+                }));
             }
         }
 
-        const sCanvas = document.getElementById('serviceChart');
-        const dataSpans = document.querySelectorAll('#serviceDataList span');
-        if (sCanvas && dataSpans.length > 0) {
-            const labels = [];
-            const counts = [];
-            dataSpans.forEach(function(el) {
-                labels.push(el.dataset.label);
-                counts.push(Number(el.dataset.count || 0));
-            });
-            new Chart(sCanvas, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Incidents',
-                        data: counts,
-                        backgroundColor: '#0d6efd',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
+        draw();
+        document.addEventListener('itsm:themechange', draw);
     });
 </script>
 </body>

@@ -1,99 +1,243 @@
-/* I-ITSM custom styles on top of Bootstrap 5 */
-:root {
+/* I-ITSM custom styles on top of Bootstrap 5.3.
+ * Every colour is a token below; dark mode only redefines the tokens (Bootstrap's own
+ * components switch through data-bs-theme="dark" on <html>). */
+
+:root,
+[data-bs-theme="light"] {
     --brand: #1f3a5f;
     --brand-2: #2f5d8a;
+    --brand-accent: #3b82f6;
+
+    --app-bg: #f3f5f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --line: #e4e7ec;
+    --ink: #1f2933;
+    --ink-muted: #667085;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .08);
+    --shadow-hover: 0 4px 12px rgba(16, 24, 40, .10);
+
+    /* priority (solid badges, white text) */
+    --p1: #b42318; --p2: #c4520a; --p3: #2e6fb7; --p4: #667085;
+
+    /* soft badges: background / text pairs */
+    --neutral-bg: #eef2f6;  --neutral-fg: #344054;
+    --blue-bg: #e0eaff;     --blue-fg: #2d3f8f;
+    --sky-bg: #e6f4ff;      --sky-fg: #175cd3;
+    --amber-bg: #fef0c7;    --amber-fg: #93370d;
+    --orange-bg: #fdead7;   --orange-fg: #b54708;
+    --violet-bg: #f4ebff;   --violet-fg: #6941c6;
+    --green-bg: #dcfae6;    --green-fg: #067647;
+    --red-bg: #fee4e2;      --red-fg: #b42318;
+
+    --bs-body-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+[data-bs-theme="dark"] {
+    --brand: #14243b;
+    --brand-2: #1f3f66;
+    --brand-accent: #60a5fa;
+
+    --app-bg: #0d1420;
+    --surface: #151e2c;
+    --surface-2: #1b2636;
+    --line: #2a3648;
+    --ink: #e6ebf2;
+    --ink-muted: #98a2b3;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow-hover: 0 6px 16px rgba(0, 0, 0, .45);
+
+    --p1: #e5484d; --p2: #e2731c; --p3: #3d83d6; --p4: #7b8494;
+
+    --neutral-bg: #253041;  --neutral-fg: #cdd5e0;
+    --blue-bg: #1e2a52;     --blue-fg: #a9bdfb;
+    --sky-bg: #102a46;      --sky-fg: #84c1ff;
+    --amber-bg: #3a2a0b;    --amber-fg: #f5c46b;
+    --orange-bg: #3d220c;   --orange-fg: #fdab6d;
+    --violet-bg: #2c1f4a;   --violet-fg: #c4a8ff;
+    --green-bg: #0f3324;    --green-fg: #6ee7a8;
+    --red-bg: #42161a;      --red-fg: #ff9b95;
+
+    --bs-body-bg: var(--app-bg);
+    --bs-body-color: var(--ink);
+    --bs-border-color: var(--line);
+    --bs-secondary-color: var(--ink-muted);
+    --bs-tertiary-bg: var(--surface-2);
+}
+
+/* ---------------------------------------------------------------- base */
+
+html { scroll-padding-top: 4.5rem; }
 
 body {
-    background: #f4f6f9;
-    color: #1f2933;
+    background: var(--app-bg);
+    color: var(--ink);
+    font-family: var(--bs-body-font-family);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
 }
 
-.bg-brand {
-    background: linear-gradient(90deg, var(--brand), var(--brand-2));
+h1, .h1, h2, .h2, h3, .h3, h4, .h4 { letter-spacing: -.01em; font-weight: 650; }
+
+.text-muted { color: var(--ink-muted) !important; }
+
+a { text-underline-offset: .15em; }
+
+:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
+
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: .5rem;
+    z-index: 2000;
+    padding: .4rem .8rem;
+    border-radius: .375rem;
+    background: var(--surface);
+    color: var(--ink);
 }
+.skip-link:focus { left: .5rem; }
+
+/* Smooth colour change when switching theme (skipped during the first paint) */
+html.theme-ready body,
+html.theme-ready .card,
+html.theme-ready .table,
+html.theme-ready .form-control,
+html.theme-ready .form-select {
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+/* ---------------------------------------------------------------- navbar */
+
+.bg-brand { background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+
+.navbar .nav-link { border-radius: .375rem; padding-inline: .65rem !important; }
+.navbar .nav-link.active,
+.navbar .nav-link:hover { background: rgba(255, 255, 255, .12); }
+
+.theme-btn { width: 2.1rem; height: 2.1rem; padding: 0; display: inline-grid; place-items: center; }
+.dropdown-item.active-theme { font-weight: 600; }
+.dropdown-item.active-theme::after { content: "\2713"; float: right; margin-left: 1rem; }
+
+.role-badge { background: rgba(255, 255, 255, .18); color: #fff; font-weight: 500; }
 
 .notif-count {
     position: absolute;
     top: 2px;
-    right: -6px;
+    right: -4px;
     font-size: .65rem;
 }
 
+/* ---------------------------------------------------------------- surfaces */
+
 .card {
-    border: 0;
-    box-shadow: 0 1px 3px rgba(16, 24, 40, .08);
+    --bs-card-bg: var(--surface);
+    --bs-card-cap-bg: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: .75rem;
+    box-shadow: var(--shadow);
 }
+.card > .card-header:first-child { border-radius: .75rem .75rem 0 0; }
 
 .card-header {
-    background: #fff;
     font-weight: 600;
+    border-bottom-color: var(--line);
 }
 
-.stat {
-    font-size: 2rem;
-    font-weight: 700;
-    line-height: 1;
+.card.lift { transition: transform .15s ease, box-shadow .15s ease; }
+.card.lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+
+.list-group { --bs-list-group-bg: var(--surface); --bs-list-group-border-color: var(--line); }
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--line);
+    --bs-table-hover-bg: var(--surface-2);
 }
+.table > thead th {
+    background: var(--surface-2);
+    color: var(--ink-muted);
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    white-space: nowrap;
+}
+
+.form-control, .form-select { background-color: var(--surface); border-color: var(--line); }
+
+.dropdown-menu { --bs-dropdown-bg: var(--surface); --bs-dropdown-border-color: var(--line); }
+
+.progress { background: var(--neutral-bg); }
+
+.empty-state {
+    text-align: center;
+    color: var(--ink-muted);
+    padding: 2.5rem 1rem !important;
+}
+.empty-state .bi { font-size: 2rem; opacity: .5; margin-bottom: .35rem; }
+
+/* ---------------------------------------------------------------- stats */
+
+.stat { font-size: 2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 
 .stat-label {
-    color: #6b7280;
-    font-size: .85rem;
+    color: var(--ink-muted);
+    font-size: .75rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: .03em;
+    letter-spacing: .05em;
+    margin-top: .35rem;
 }
 
-/* Priority badges */
-.prio-P1 { background: #b42318; }
-.prio-P2 { background: #dc6803; }
-.prio-P3 { background: #2e6fb7; }
-.prio-P4 { background: #667085; }
-.prio-none { background: #d0d5dd; color: #344054; }
+/* ---------------------------------------------------------------- badges */
 
-/* Status badges */
-.status { background: #eef2f6; color: #344054; font-weight: 600; }
-.status-NEW { background: #e0eaff; color: #2d3f8f; }
-.status-CLASSIFIED { background: #e6f4ff; color: #175cd3; }
-.status-ASSIGNED, .status-ACKNOWLEDGED { background: #fef0c7; color: #93370d; }
-.status-IN_PROGRESS { background: #fdead7; color: #b54708; }
-.status-PENDING_INFO { background: #f4ebff; color: #6941c6; }
-.status-RESOLVED, .status-VERIFIED { background: #dcfae6; color: #067647; }
-.status-CLOSED { background: #e4e7ec; color: #475467; }
+.badge { font-weight: 600; letter-spacing: .01em; }
 
-/* SLA badges */
-.sla { font-weight: 600; }
-.sla-NOT_STARTED { background: #f2f4f7; color: #667085; }
-.sla-ON_TRACK { background: #dcfae6; color: #067647; }
-.sla-AT_RISK { background: #fef0c7; color: #b54708; }
-.sla-BREACHED { background: #fee4e2; color: #b42318; }
-.sla-MET { background: #d1e9ff; color: #175cd3; }
+.badge-soft { background: var(--neutral-bg); color: var(--neutral-fg); }
 
-/* Conversation and history */
+.prio { color: #fff; }
+.prio-P1 { background: var(--p1); }
+.prio-P2 { background: var(--p2); }
+.prio-P3 { background: var(--p3); }
+.prio-P4 { background: var(--p4); }
+.prio-none { background: var(--neutral-bg); color: var(--neutral-fg); }
+
+.status { background: var(--neutral-bg); color: var(--neutral-fg); }
+.status-NEW { background: var(--blue-bg); color: var(--blue-fg); }
+.status-CLASSIFIED { background: var(--sky-bg); color: var(--sky-fg); }
+.status-ASSIGNED, .status-ACKNOWLEDGED { background: var(--amber-bg); color: var(--amber-fg); }
+.status-IN_PROGRESS { background: var(--orange-bg); color: var(--orange-fg); }
+.status-PENDING_INFO { background: var(--violet-bg); color: var(--violet-fg); }
+.status-RESOLVED, .status-VERIFIED { background: var(--green-bg); color: var(--green-fg); }
+.status-CLOSED { background: var(--neutral-bg); color: var(--ink-muted); }
+
+.sla-NOT_STARTED { background: var(--neutral-bg); color: var(--ink-muted); }
+.sla-ON_TRACK { background: var(--green-bg); color: var(--green-fg); }
+.sla-AT_RISK { background: var(--amber-bg); color: var(--amber-fg); }
+.sla-BREACHED { background: var(--red-bg); color: var(--red-fg); }
+.sla-MET { background: var(--sky-bg); color: var(--sky-fg); }
+
+/* ---------------------------------------------------------------- conversation & history */
+
 .note {
-    border-left: 3px solid #d0d5dd;
+    border-left: 3px solid var(--line);
     padding: .5rem .75rem;
     margin-bottom: .75rem;
-    background: #fff;
-    border-radius: 0 .375rem .375rem 0;
+    background: var(--surface-2);
+    border-radius: 0 .5rem .5rem 0;
 }
+.note-INFO_REQUEST { border-left-color: var(--violet-fg); }
+.note-INFO_RESPONSE { border-left-color: var(--green-fg); }
+.note-INVESTIGATION { border-left-color: var(--orange-fg); }
 
-.note-INFO_REQUEST { border-left-color: #7f56d9; }
-.note-INFO_RESPONSE { border-left-color: #12b76a; }
-.note-INVESTIGATION { border-left-color: #f79009; }
-
-.timeline {
-    list-style: none;
-    padding-left: 0;
-    margin: 0;
-}
-
+.timeline { list-style: none; padding-left: 0; margin: 0; }
 .timeline li {
     position: relative;
     padding: 0 0 .9rem 1.4rem;
-    border-left: 2px solid #e4e7ec;
+    border-left: 2px solid var(--line);
     margin-left: .4rem;
 }
-
+.timeline li:last-child { border-left-color: transparent; }
 .timeline li::before {
     content: "";
     position: absolute;
@@ -102,24 +246,84 @@ body {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--brand-2);
+    background: var(--brand-accent);
+    box-shadow: 0 0 0 3px var(--surface);
 }
 
-.explain {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: .8rem;
-    background: #f8fafc;
-    border: 1px solid #e4e7ec;
-    border-radius: .375rem;
+.explain, .callout {
+    font-size: .85rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: .5rem;
     padding: .5rem .75rem;
 }
+.explain { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8rem; }
+
+/* ---------------------------------------------------------------- landing & auth */
 
 .hero {
+    position: relative;
+    overflow: hidden;
     background: linear-gradient(135deg, var(--brand), var(--brand-2));
     color: #fff;
     border-radius: 1rem;
 }
+.hero::after {
+    content: "";
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(96, 165, 250, .35), transparent 70%);
+    pointer-events: none;
+}
 
-.auth-card {
-    max-width: 440px;
+.feature-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: .6rem;
+    display: inline-grid;
+    place-items: center;
+    font-size: 1.2rem;
+    margin-bottom: .75rem;
+}
+
+.auth-card { max-width: 440px; }
+.auth-logo {
+    width: 3rem;
+    height: 3rem;
+    border-radius: .8rem;
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+}
+
+.chart-box { position: relative; height: 240px; }
+.chart-empty { color: var(--ink-muted); }
+
+/* ---------------------------------------------------------------- footer */
+
+.app-footer { color: var(--ink-muted); font-size: .8rem; }
+.kbd-hint kbd {
+    background: var(--neutral-bg);
+    color: var(--neutral-fg);
+    border: 1px solid var(--line);
+    font-size: .7rem;
+}
+
+/* ---------------------------------------------------------------- motion & print */
+
+@media (prefers-reduced-motion: no-preference) {
+    main { animation: page-in .25s ease-out; }
+    @keyframes page-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+
+@media print {
+    .navbar, .app-footer, .btn, form { display: none !important; }
+    body { background: #fff; }
+    .card { box-shadow: none; border-color: #ccc; }
 }

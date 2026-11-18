@@ -27,7 +27,7 @@ public class SecurityConfig {
             throws Exception {
         http
             .authorizeHttpRequests(auth -> {
-                auth.requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/error")
+                auth.requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/webjars/**", "/error")
                         .permitAll();
                 if (h2Console) {
                     auth.requestMatchers("/h2-console/**").permitAll();
