@@ -5,21 +5,27 @@
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 <main id="main" class="container py-4" th:with="r=${report}">
     <div th:replace="~{fragments/layout :: flash}"></div>
-    <h1 class="h4 mb-3">Overview</h1>
+    <h1 class="h4 mb-3">Operations <span class="text-gradient">overview</span></h1>
 
     <!-- Incident overview -->
     <div class="row g-3 mb-4">
-        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
+        <div class="col-6 col-md-4 col-xl-2"><div class="card stat-card tone-indigo h-100"><div class="card-body">
+            <div class="stat-icon"><i class="bi bi-collection"></i></div>
             <div class="stat" th:text="${r.total}">0</div><div class="stat-label">Total incidents</div></div></div></div>
-        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
-            <div class="stat text-primary" th:text="${r.open}">0</div><div class="stat-label">Open</div></div></div></div>
-        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
-            <div class="stat text-danger" th:text="${r.criticalOpen}">0</div><div class="stat-label">Open P1</div></div></div></div>
-        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
-            <div class="stat text-success" th:text="${r.resolved}">0</div><div class="stat-label">Resolved / closed</div></div></div></div>
-        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
-            <div class="stat text-warning" th:text="${r.slaViolations}">0</div><div class="stat-label">SLA violations</div></div></div></div>
-        <div class="col-6 col-md-4 col-xl-2"><div class="card h-100"><div class="card-body">
+        <div class="col-6 col-md-4 col-xl-2"><div class="card stat-card tone-cyan h-100"><div class="card-body">
+            <div class="stat-icon"><i class="bi bi-folder2-open"></i></div>
+            <div class="stat" th:text="${r.open}">0</div><div class="stat-label">Open</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card stat-card tone-rose h-100"><div class="card-body">
+            <div class="stat-icon"><i class="bi bi-exclamation-octagon"></i></div>
+            <div class="stat" th:text="${r.criticalOpen}">0</div><div class="stat-label">Open P1</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card stat-card tone-green h-100"><div class="card-body">
+            <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+            <div class="stat" th:text="${r.resolved}">0</div><div class="stat-label">Resolved / closed</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card stat-card tone-amber h-100"><div class="card-body">
+            <div class="stat-icon"><i class="bi bi-alarm"></i></div>
+            <div class="stat" th:text="${r.slaViolations}">0</div><div class="stat-label">SLA violations</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="card stat-card tone-violet h-100"><div class="card-body">
+            <div class="stat-icon"><i class="bi bi-speedometer2"></i></div>
             <div class="stat" th:text="${r.slaCompliancePercent != null} ? ${r.slaCompliancePercent} + '%' : '-'">-</div>
             <div class="stat-label">SLA compliance</div>
             <div class="small text-muted" th:if="${r.averageResolutionMinutes != null}" th:text="'avg fix ' + ${r.averageResolutionMinutes} + ' min'">avg</div>
@@ -148,9 +154,10 @@
                         data: {
                             labels: ['P1 - Critical', 'P2 - High', 'P3 - Medium', 'P4 - Low'],
                             datasets: [{ data: d, backgroundColor: [css('--p1'), css('--p2'), css('--p3'), css('--p4')],
-                                         borderColor: surface, borderWidth: 2 }]
+                                         borderColor: 'transparent', borderWidth: 0, borderRadius: 8, spacing: 3, hoverOffset: 10 }]
                         },
-                        options: { responsive: true, maintainAspectRatio: false, cutout: '62%',
+                        options: { responsive: true, maintainAspectRatio: false, cutout: '66%', layout: { padding: 8 },
+                                   animation: { animateRotate: true, duration: 1100, easing: 'easeOutQuart' },
                                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } } }
                     }));
                 }
@@ -165,11 +172,22 @@
                 spans.forEach(function (el) { labels.push(el.dataset.label); counts.push(Number(el.dataset.count || 0)); });
                 charts.push(new Chart(s, {
                     type: 'bar',
-                    data: { labels: labels, datasets: [{ label: 'Incidents', data: counts, backgroundColor: css('--brand-accent'),
-                                                         borderRadius: 6, maxBarThickness: 48 }] },
+                    data: { labels: labels, datasets: [{ label: 'Incidents', data: counts, borderRadius: 10, borderSkipped: false,
+                                                         maxBarThickness: 46,
+                                                         backgroundColor: function (c) {
+                                                             var a = c.chart.chartArea;
+                                                             if (!a) return css('--brand-accent');
+                                                             var g = c.chart.ctx.createLinearGradient(0, a.bottom, 0, a.top);
+                                                             g.addColorStop(0, '#06b6d4');
+                                                             g.addColorStop(0.55, '#6366f1');
+                                                             g.addColorStop(1, '#a855f7');
+                                                             return g;
+                                                         },
+                                                         hoverBackgroundColor: '#c026d3' }] },
                     options: { responsive: true, maintainAspectRatio: false,
-                               scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } },
-                               plugins: { legend: { display: false } } }
+                               animation: { duration: 1000, easing: 'easeOutQuart', delay: function (c) { return c.dataIndex * 70; } },
+                               scales: { x: { grid: { display: false }, border: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 }, border: { display: false }, grid: { color: line } } },
+                               plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(30,27,75,.92)', padding: 10, cornerRadius: 10, displayColors: false } } }
                 }));
             }
         }

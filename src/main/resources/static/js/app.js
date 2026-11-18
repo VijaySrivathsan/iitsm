@@ -96,8 +96,39 @@
         });
     }
 
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Cards fade up one after another (the delay is read by the CSS animation)
+    function staggerCards() {
+        document.querySelectorAll('main .card, main .hero').forEach(function (el, i) {
+            el.style.setProperty('--i', Math.min(i, 12));
+        });
+    }
+
+    // Dashboard numbers count up from zero ("88%" keeps its suffix)
+    function countUp() {
+        if (reduceMotion) return;
+        document.querySelectorAll('.stat').forEach(function (el) {
+            var m = el.textContent.trim().match(/^(\d+)(\D*)$/);
+            if (!m) return;
+            var target = parseInt(m[1], 10), suffix = m[2], start = null, duration = 900;
+            if (target === 0) return;
+            el.textContent = '0' + suffix;
+            function step(ts) {
+                if (start === null) start = ts;
+                var p = Math.min((ts - start) / duration, 1);
+                var eased = 1 - Math.pow(1 - p, 3);
+                el.textContent = Math.round(target * eased) + suffix;
+                if (p < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         apply(readPref());
+        staggerCards();
+        countUp();
         document.querySelectorAll('[data-theme-value]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var pref = btn.getAttribute('data-theme-value');
