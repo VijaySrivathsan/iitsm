@@ -8,7 +8,7 @@
 |---|---|
 | Group | _<group no.>_ |
 | Members | _<name - ID - module owned>_ (one row each) |
-| Repository | https://github.com/VijaySrivathsan/iitsm (private; add evaluators as collaborators if they need access) |
+| Repository | https://github.com/VijaySrivathsan/I-ITSM |
 | Demo video | `<group no.>_OOP_S1_2025-2026_Project` (15-20 min) |
 
 ---
