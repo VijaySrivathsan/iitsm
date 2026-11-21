@@ -83,7 +83,7 @@
 \renewcommand{\lstlistingname}{Listing}
 
 % ------------------------------------------------------------------ group details (edit these)
-\newcommand{\groupno}{\textit{(group number)}}
+\newcommand{\groupno}{12}
 \newcommand{\repourl}{https://github.com/VijaySrivathsan/iitsm}
 \newcommand{\videoname}{\groupno\_OOP\_S1\_2025-2026\_Project}
 
@@ -104,10 +104,10 @@
 \vspace{1.8cm}
 {\large
 \begin{tabular}{@{}L{3.6cm}L{10cm}@{}}
-\textbf{Group} & \groupno \\
+\textbf{Group} & Group \groupno \\
 \textbf{Members} & Vijay Srivathsan B \hfill 2024B3A70537H \\
- & Harish MP \hfill 2024B5A70641H \\
  & Sathvik T Hatwar \hfill 2024B3A70509H \\
+ & Harish MP \hfill 2024B5A70641H \\
  & Vishnu Rahul \hfill 2024B4AD0542H \\
 \textbf{Repository} & \url{\repourl} \\
 \textbf{Demo video} & \videoname \\
@@ -670,10 +670,10 @@ The work was divided by module so that every member owns a clearly identifiable 
 \toprule
 \textbf{Member} & \textbf{Module and responsibilities} & \textbf{Main classes and artefacts} \\
 \midrule\endhead
-\textbf{Vijay Srivathsan B}\newline 2024B3A70537H & Architecture and domain model: layered design, \code{Incident} aggregate, user hierarchy, State pattern, factories; persistence and database design; domain events, audit trail and notification design; integration and the report. & \code{Incident}, \code{User} hierarchy, \code{domain.incident.state}, \code{IncidentFactory}, \code{UserFactory}, repositories, \code{AuditListener}, \code{NotificationListener}, ER design \\
-\textbf{Harish MP}\newline 2024B5A70641H & Business rules: priority strategies, SLA policies and deadline tracking, the background SLA monitor and risk detection, technician assignment strategies and the runtime registry, automatic escalation. & \code{priority} package, \code{SlaService}, \code{SlaMonitorService}, \code{ThresholdSlaRiskEvaluator}, \code{assignment} package, \code{EscalationService} \\
-\textbf{Sathvik T Hatwar}\newline 2024B3A70509H & Intelligent features and analytics: duplicate detection and correlation, category and resolution suggestions, the Gemini AI advisor, the service dependency graph, Chart.js dashboard, CSV export, one-click Windows start-up. & \code{intelligence} package, \code{AiIncidentAdvisor}, \code{ITService} dependencies, \code{ReportService}, CSV export, \code{start-app.ps1} \\
-\textbf{Vishnu Rahul}\newline 2024B4AD0542H & User interface and security: role-specific Thymeleaf pages, theme and accessibility, Spring Security configuration, exception handling, search; the automated test suite and the documented test cases. & \code{web} package, templates, \code{app.css}, \code{SecurityConfig}, \code{GlobalExceptionHandler}, \code{SearchService}, test suite, \code{docs/test-cases.md} \\
+\textbf{Vijay Srivathsan B}\newline 2024B3A70537H & \textbf{Domain, OOP, database.} Layered architecture; the \code{Incident} aggregate and value objects; the user hierarchy; the State pattern for the lifecycle; factories; the exception hierarchy; persistence, repositories and the database design. & \code{Incident}, \code{User} hierarchy, \code{domain.incident.state}, \code{IncidentFactory}, \code{UserFactory}, \code{ItsmException} family, repositories, ER design \\
+\textbf{Sathvik T Hatwar}\newline 2024B3A70509H & \textbf{Priority, SLA, assignment.} Priority strategies and their explanation; SLA policies, deadline tracking, the background SLA monitor and risk detection; technician assignment strategies and the runtime strategy registry. & \code{priority} package, \code{SlaService}, \code{SlaMonitorService}, \code{ThresholdSlaRiskEvaluator}, \code{assignment} package, \code{AssignmentStrategyRegistry} \\
+\textbf{Harish MP}\newline 2024B5A70641H & \textbf{UI, security, audit, admin.} Role-specific Thymeleaf pages, theme and accessibility; Spring Security and access control; the audit trail and notifications (Observer, Adapter); administrator screens, dashboard, search and CSV export. & \code{web} package, templates, \code{app.css}, \code{SecurityConfig}, \code{GlobalExceptionHandler}, \code{AuditListener}, \code{NotificationListener}, \code{ReportService}, \code{SearchService} \\
+\textbf{Vishnu Rahul}\newline 2024B4AD0542H & \textbf{Intelligent features, tests.} Duplicate detection and correlation, category and resolution suggestions, automatic escalation, the Gemini AI advisor and the service dependency graph; the automated test suite and the documented test cases. & \code{intelligence} package, \code{EscalationService}, \code{AiIncidentAdvisor}, \code{ITService} dependencies, test suite, \code{docs/test-cases.md} \\
 \bottomrule
 \end{longtable}
 
@@ -682,10 +682,10 @@ The work was divided by module so that every member owns a clearly identifiable 
 \toprule
 \textbf{Presenter} & \textbf{Time} & \textbf{Part of the video} \\
 \midrule
-Vijay Srivathsan B & 0--5 min & Introduction, architecture, domain model and State pattern; workflow 1 (report $\rightarrow$ prioritise $\rightarrow$ assign $\rightarrow$ notify) and the audit trail. \\
-Harish MP & 5--9 min & Priority working, SLA countdown and risk badge, switching the assignment strategy; workflow 2 (investigate $\rightarrow$ resolve $\rightarrow$ verify $\rightarrow$ close). \\
-Sathvik T Hatwar & 9--14 min & Workflow 3: duplicate detection, outage hotspot and escalation; AI advisor, dependency impact, charts and CSV export. \\
-Vishnu Rahul & 14--18 min & Role-based interfaces and access control (403), dark mode and phone layout, search, the test suite running, and a rejected illegal transition. \\
+Vijay Srivathsan B & 0--4 min & Introduction, architecture, domain model, State pattern and database; an illegal transition being rejected. \\
+Sathvik T Hatwar & 4--9 min & Workflow 1 (report $\rightarrow$ prioritise $\rightarrow$ assign $\rightarrow$ notify): the priority working, the SLA countdown and risk badge, switching the assignment strategy. \\
+Harish MP & 9--13 min & Workflow 2 (investigate $\rightarrow$ resolve $\rightarrow$ verify $\rightarrow$ close) through the role-based pages; access control (403); audit log, notifications and outbox; administrator screens, dashboard, dark mode. \\
+Vishnu Rahul & 13--18 min & Workflow 3: duplicate detection, outage hotspot and escalation; AI advisor and dependency impact; the test suite running. \\
 \bottomrule
 \end{tabularx}
 
