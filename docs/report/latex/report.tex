@@ -4,6 +4,7 @@
 \documentclass[11pt,a4paper]{article}
 
 % ------------------------------------------------------------------ fonts
+\usepackage{amsmath}
 \usepackage{fontspec}
 % Headings in Cambria, text in Calibri. On machines without the Microsoft fonts
 % (e.g. Linux) the metric-compatible Caladea / Carlito are used instead.
@@ -67,6 +68,20 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
+% ------------------------------------------------------------------ code listings
+\usepackage{listings}
+\definecolor{codebg}{HTML}{F6F7FB}
+\definecolor{codekw}{HTML}{4338CA}
+\definecolor{codecm}{HTML}{6B7280}
+\definecolor{codestr}{HTML}{047857}
+\lstdefinestyle{java}{language=Java,basicstyle=\ttfamily\footnotesize,keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecm}\itshape,stringstyle=\color{codestr},backgroundcolor=\color{codebg},
+  frame=leftline,framerule=2pt,rulecolor=\color{brand},xleftmargin=6pt,framexleftmargin=6pt,
+  showstringspaces=false,columns=fullflexible,keepspaces=true,breaklines=true,tabsize=4,
+  aboveskip=0.6em,belowskip=0.4em,morekeywords={record,var,sealed,permits}}
+\lstset{style=java}
+\renewcommand{\lstlistingname}{Listing}
+
 % ------------------------------------------------------------------ group details (edit these)
 \newcommand{\groupno}{\textit{(group number)}}
 \newcommand{\repourl}{https://github.com/VijaySrivathsan/iitsm}
@@ -86,13 +101,14 @@
 {\headingfont\color{brand2}\LARGE Intelligent IT Service Management\\[0.2em] \& Incident Resolution System\par}
 \vspace{0.8cm}
 {\Large Project Report\par}
-\vspace{2.2cm}
+\vspace{1.8cm}
 {\large
 \begin{tabular}{@{}L{3.6cm}L{10cm}@{}}
 \textbf{Group} & \groupno \\
-\textbf{Members} & \textit{(name -- ID -- module)} \\
- & \textit{(name -- ID -- module)} \\
- & \textit{(name -- ID -- module)} \\
+\textbf{Members} & Vijay Srivathsan B \hfill 2024B3A70537H \\
+ & Harish MP \hfill 2024B5A70641H \\
+ & Sathvik T Hatwar \hfill 2024B3A70509H \\
+ & Vishnu Rahul \hfill 2024B4AD0542H \\
 \textbf{Repository} & \url{\repourl} \\
 \textbf{Demo video} & \videoname \\
 \end{tabular}\par}
@@ -100,6 +116,7 @@
 {\color{muted}A web application that manages the complete life of an IT incident: report, classify, prioritise, assign, investigate, resolve, verify and close. Built with Java 21 and Spring Boot, designed around object-oriented principles and seven design patterns.\par}
 \end{titlepage}
 
+\setcounter{tocdepth}{1}
 \tableofcontents
 \clearpage
 
@@ -254,7 +271,7 @@ Why a layered monolith: it is the simplest structure that still separates presen
 \midrule\endhead
 Encapsulation & \code{Incident} has no public setters; its state changes only through intent-revealing methods (\code{assignTo}, \code{resolve}, \code{reopen}). Collections are returned as read-only views; constructors validate their arguments. \\
 Abstraction & Interfaces \code{IncidentState}, \code{PriorityStrategy}, \code{AssignmentStrategy}, \code{NotificationChannel}, \code{DuplicateDetector}, \code{SlaRiskEvaluator}: callers depend on what is done, not how. \\
-Inheritance (true is-a) & \code{User} $\rightarrow$ \code{Employee}, \code{Technician}, \code{Administrator}; \code{AbstractIncidentState} $\rightarrow$ 10 states; \code{ItsmException} $\rightarrow$ exception families; \code{BaseEntity} $\rightarrow$ entities. \\
+Inheritance (true is-a) & \code{User} $\rightarrow$ \code{Employee}, \code{Technician}, \code{Administrator}; \code{AbstractIncidentState} $\rightarrow$ 9 states; \code{ItsmException} $\rightarrow$ exception families; \code{BaseEntity} $\rightarrow$ entities. \\
 Polymorphism & \code{incident.resolve()} behaves differently in each state; \code{user.getRole()}; the same input gives P1 with the weighted strategy and P3 with the matrix strategy (tested). \\
 Interfaces & 20 contracts, including the gateways \code{EmailGateway} and \code{SmsGateway}. \\
 Composition & \code{Incident} owns its \code{SlaRecord}, \code{Resolution}, \code{Feedback} and \code{InvestigationNote}s (they live and die with it). \\
@@ -286,7 +303,7 @@ Collections & \code{EnumMap} (state registry, priority matrix), \code{PriorityQu
 \toprule
 \textbf{Pattern} & \textbf{Where} & \textbf{Why} \\
 \midrule\endhead
-State & \code{IncidentState}, 10 state classes, \code{IncidentStateRegistry} & Each status allows only its own transitions; illegal ones are rejected in one place, with no \code{switch} on status. \\
+State & \code{IncidentState}, 9 state classes, \code{IncidentStateRegistry} & Each status allows only its own transitions; illegal ones are rejected in one place, with no \code{switch} on status. \\
 Strategy & \code{PriorityStrategy} (2), \code{AssignmentStrategy} (4), \code{NotificationChannel} (3) & Algorithms are interchangeable: priority by configuration, assignment at runtime by an administrator. \\
 Observer & \code{IncidentEvent} $\rightarrow$ \code{AuditListener}, \code{NotificationListener} & Services do not know who reacts; new reactions need no change to the services. \\
 Factory & \code{IncidentFactory}, \code{UserFactory}, \code{NotificationFactory} & Creation rules (defaults, password hashing, message text) live in one place. \\
@@ -315,6 +332,8 @@ Each status is a class implementing \code{IncidentState}. A state answers only t
 \caption{Sequence diagram for workflow 1: an employee reports, the system classifies and prioritises, assigns a technician and notifies through the event bus.}
 \end{figure}
 \end{landscape}
+
+\input{detailed-design}
 
 % ================================================================== 5
 \section{Technology Stack}
@@ -369,6 +388,26 @@ G & Suggested resolutions & Up to three similar resolved incidents, with their f
 
 Priority calculation is automated and explains itself, for example: \textit{Impact High(3) $\times$ Urgency High(3) $\times$ Criticality 5 = 45; $\times$ 1.5 for 500 affected users = 67.5 $\rightarrow$ P1 Critical.}
 
+\subsection{Duplicate detection: a worked example}
+\code{TextNormalizer} lower-cases the text, removes stop words and simple plurals, and maps synonyms onto one word: \textit{transaction, checkout, pay} $\rightarrow$ \textit{payment}; \textit{down, failing, unable, unavailable} $\rightarrow$ \textit{outage}. For the brief's example:
+
+\begin{tabularx}{\linewidth}{@{}L{5.4cm}Y@{}}
+\toprule
+\textbf{Report} & \textbf{Normalised word set} \\
+\midrule
+``Payment application unavailable'' & \{payment, application, outage\} \\
+``Payment transaction failing'' & \{payment, outage\} \\
+\bottomrule
+\end{tabularx}
+
+Jaccard similarity $= |A \cap B| \,/\, |A \cup B| = 2/3 = 0.67$, plus 0.2 because both are on the Payment Gateway service, giving 0.87, above the threshold of 0.5. The new incident is linked to the \emph{original} report (never to another duplicate), and the technician confirms or dismisses the match. The same employee filing the same report again within an hour is refused outright with \code{DuplicateIncidentException}.
+
+\subsection{Automatic escalation}
+\code{EscalationService} watches P1 and P2 incidents that nobody has acknowledged yet (still CLASSIFIED or ASSIGNED). When the response deadline passes, the incident escalates to a team lead; one response window later to the system administrator; one more window later to the IT manager. A level with nobody available is skipped, each escalation is stored as an \code{Escalation} record and announced through the normal event flow (SMS included), and acknowledging the incident stops the chain. With the demo override for Payment Gateway P1 (two-minute response), the whole chain can be shown in a few minutes.
+
+\subsection{AI incident advisor and service dependency graph}
+\code{AiIncidentAdvisor} builds a short prompt from the incident (title, description, service, criticality, priority, affected users) and calls the Google Gemini \code{generateContent} REST endpoint through Java's \code{HttpClient} with short time-outs. If no key is configured, or the call fails, it falls back to local expert rules per service type, so the incident page always shows a triage summary, a root-cause hypothesis and investigation steps. Each \code{ITService} holds a set of services it depends on (a self-referencing many-to-many association); the incident page shows the upstream services and the downstream services that may also be affected, for example an Auth / SSO outage warns about Payment Gateway, VPN, E-mail and HR Portal.
+
 \twoshots{05-duplicate-flagged}{A second report of the payment outage is flagged as a possible duplicate of INC1001 (similarity 0.60).}{07-tech-incident}{The technician's view: suggested resolutions from similar past incidents, AI advisor and dependency impact.}
 
 % ================================================================== 7
@@ -381,6 +420,26 @@ The schema has 12 tables and is generated by Hibernate from the entities (\code{
 \caption{Entity--relationship diagram}
 \end{figure}
 \end{landscape}
+
+\subsection{Tables}
+\begin{longtable}{@{}L{4cm}L{11.2cm}@{}}
+\toprule
+\textbf{Table} & \textbf{Purpose and key columns} \\
+\midrule\endhead
+\code{users} & All users (single-table inheritance): username, BCrypt password hash, name, contact details, active flag, \code{user\_type}; employee department; technician capacity, availability, experience, team-lead flag; administrator IT-manager flag. \\
+\code{incident} & The incident aggregate: sequence number (shown as INC1001), title, description, reporter, service, category, assignee, impact, urgency, affected users, priority and its explanation, status, timestamps; embedded SLA record, resolution and feedback; duplicate links; \code{version}. \\
+\code{investigation\_note} & Notes, questions and answers on an incident, with author, type and time. \\
+\code{it\_service} & IT services with business criticality (1--5) and an active flag. \\
+\code{service\_dependencies} & Service-to-service dependencies (self-join) for impact analysis. \\
+\code{category} & Incident categories with keywords for suggestion; data, not an enum. \\
+\code{technician\_skills} & Many-to-many link between technicians and categories. \\
+\code{sla\_policy} & Response and resolution minutes per priority, optionally per service. \\
+\code{escalation} & Escalation history: incident, level, target user, time and reason. \\
+\code{audit\_entry} & Audit trail: time, actor, action, incident number, previous and new status, description. \\
+\code{notification} & Delivered notifications: recipient, channel, subject, body, incident, read flag. \\
+\code{system\_setting} & Key--value settings, such as the active assignment strategy. \\
+\bottomrule
+\end{longtable}
 
 \subsection{Important relationships}
 \begin{itemize}
@@ -438,7 +497,7 @@ Invalid user input & \code{InvalidInputException} and form validation errors \\
 
 % ================================================================== 9
 \section{Testing}
-The project has \textbf{249 automated tests in 27 test classes}, all passing with \code{mvn test}, and \textbf{108 documented test cases} in \code{docs/\allowbreak test-cases.md}. Techniques: plain unit tests for the domain and strategies; \code{@DataJpaTest} with a real H2 database for repositories and services; a \code{MutableClock} to move time forward; \code{@SpringBootTest} with MockMvc and Spring Security Test for the web layer; recorded application events to verify the Observer flow. A selection:
+The project has \textbf{249 automated tests in 27 test classes}, all passing with \code{mvn test}, and \textbf{108 documented test cases} (Appendix~\ref{app:tests}). Techniques: plain unit tests for the domain and strategies; \code{@DataJpaTest} with a real H2 database for repositories and services; a \code{MutableClock} to move time forward; \code{@SpringBootTest} with MockMvc and Spring Security Test for the web layer; recorded application events to verify the Observer flow. A selection:
 
 \begin{longtable}{@{}L{1.1cm}L{2.2cm}L{5.8cm}L{6cm}@{}}
 \toprule
@@ -480,11 +539,14 @@ The recorded video (\videoname, 15--20 minutes) demonstrates three complete work
 \subsection{Workflow 1: report, prioritise, assign, notify}
 \twoshots{01-login}{Login page with the light / dark theme switch.}{03-report-form}{The employee reports the payment outage; a category is suggested from the text (feature F).}
 
-\shot{04-incident-created}{The incident is created, classified and prioritised P1 with the working shown, auto-assigned to Karan Shah by the skill strategy, and its SLA clock started.}
+\shot{04-incident-created}{\label{fig:created}The incident is created, classified and prioritised P1 with the working shown, auto-assigned to Karan Shah by the skill strategy, and its SLA clock started.}
 
 \twoshots{06-tech-queue}{The technician's queue, most urgent SLA first, with current workload.}{08-notifications}{The technician is notified of the assignment (in-app; e-mail and SMS go to the outbox).}
 
 \subsection{Workflow 2: investigate, monitor SLA, resolve, notify}
+The technician acknowledges the incident (response time recorded against the SLA), starts the investigation, adds notes and can ask the reporter a question, which moves the incident to PENDING\_INFO until the reporter answers. The SLA countdown and risk badges stay visible throughout.
+
+\twoshots{22-tech-queue-pending}{A team lead's queue: the incident waiting for the reporter shows PENDING INFO; team workload below.}{23-employee-answer}{The reporter sees the technician's question and answers it; the incident returns to IN PROGRESS.}
 \twoshots{19-verify}{After investigation and resolution, the reporter is asked to verify the fix.}{20-closed}{Verified and closed: resolution, root cause, feedback and the full audit trail.}
 
 \subsection{Workflow 3: duplicates, correlation and escalation}
@@ -498,8 +560,70 @@ A second employee reports the same outage in different words and it is flagged a
 \twoshots{17-services}{IT services with business criticality.}{18-dark-dashboard}{The same overview in dark mode.}
 
 % ================================================================== 11
-\section{Source Code}
-The complete source code is in the Git repository \url{\repourl}. It contains 164 main classes (about 9,100 lines) in the package \code{com.iitsm}, 27 test classes, 23 page templates, the design decision log (\code{docs/decisions.md}, 26 entries) and the documented test cases.
+\section{User Guide}
+I-ITSM gives each role its own home page and menu; actions appear only when the current user may perform them in the incident's current state. The guide below follows the order in which each role usually works.
+
+\subsection{Employee}
+\begin{enumerate}
+  \item \textbf{Register and log in.} New employees register themselves; technicians and administrators are created by an administrator.
+  \item \textbf{Report an incident.} Choose the affected service, optionally a category (one is suggested from the description as you type), describe the problem and set impact, urgency and the number of affected users. Choosing a category lets the system classify, prioritise and assign immediately.
+  \item \textbf{Track it.} \emph{My incidents} lists every report with its priority, status and SLA; the bell shows notifications.
+  \item \textbf{Answer questions, verify and close.} When the technician asks for information, an answer box appears. After resolution, confirm the fix with a rating and comment (or reopen it), and close the incident.
+\end{enumerate}
+
+\twoshots{21-register}{Self-registration for employees.}{24-employee-list}{\emph{My incidents}: every report with priority, status and SLA.}
+
+\begin{figure}[H]\centering
+\begin{minipage}[c]{0.3\linewidth}\centering\includegraphics[width=0.92\linewidth]{figures/shot-29-mobile.jpg}\end{minipage}\hfill
+\begin{minipage}[c]{0.66\linewidth}
+\small The interface adapts to phone width without sideways scrolling: the menu collapses behind a button and tables scroll inside their cards. Colours follow the system's light or dark setting unless the user picks a theme with the button in the top bar; the choice is remembered in the browser. A skip-to-content link, visible focus outlines and the \texttt{/} shortcut for search help keyboard users.
+\end{minipage}
+\caption{The employee view on a phone (390 pixels wide).}
+\end{figure}
+
+\subsection{Technician and team lead}
+\begin{enumerate}
+  \item \textbf{Work the queue.} \emph{My queue} lists assigned incidents with the most urgent SLA first, and the workload bar shows active incidents against the technician's maximum. The availability switch takes the technician out of automatic assignment (for example, when on leave).
+  \item \textbf{Acknowledge, investigate, resolve.} On the incident page: acknowledge (stops escalation and records the response time), start the investigation, add notes, ask the reporter a question, and resolve with a summary and root cause. Suggested resolutions from similar past incidents and the AI advisor help with the diagnosis.
+  \item \textbf{Duplicates.} When a report is flagged as a possible duplicate, confirm it (it is linked to the original) or dismiss it.
+  \item \textbf{Team leads} additionally see all incidents and the team's workload, and receive the first level of escalation.
+\end{enumerate}
+
+\shot{30-dark-tech}{A technician's queue in dark mode.}
+
+\subsection{Administrator}
+\begin{itemize}
+  \item \textbf{Overview:} incident figures, at-risk and unassigned incidents, technician workload, outage hotspots and charts.
+  \item \textbf{Incidents:} all incidents; classify NEW incidents, assign or reassign with the smart recommendation, change impact or urgency (priority and SLA are recalculated).
+  \item \textbf{Configure:} users and technicians (skills, maximum workload, experience, team lead, availability), IT services (criticality, dependencies), categories (with keywords for suggestions), SLA policies per service and priority, and the assignment strategy.
+  \item \textbf{Monitor:} the audit log (filterable, exportable to CSV) and the e-mail / SMS outbox.
+\end{itemize}
+
+\twoshots{16-users}{Users and technicians; administrators create technician and administrator accounts.}{27-technician-profile}{A technician's skills, capacity, experience, team-lead flag and availability.}
+\twoshots{26-categories}{Categories are data: new ones are added here, with keywords for suggestion.}{10-admin-incidents}{All incidents with priority, status, SLA and assignee.}
+\twoshots{25-forbidden}{Role checks: an employee who opens an administrator page sees a 403 page.}{28-admin-incident-pending}{The administrator's view of an incident: re-assignment with scores and impact changes.}
+
+% ================================================================== 12a
+\section{Source Code, Build and Deployment}
+The complete source code is in the Git repository \url{\repourl}. It contains 164 main types (about 9,100 lines of Java) in the package \code{com.iitsm}, 27 test classes with 249 tests, 23 page templates, the design decision log (\code{docs/decisions.md}, 26 entries) and the documented test cases.
+
+\subsection{Repository layout}
+\begin{tabularx}{\linewidth}{@{}L{5.6cm}Y@{}}
+\toprule
+\textbf{Path} & \textbf{Contents} \\
+\midrule
+\code{src/main/java/com/iitsm} & Application code, one package per layer or concern (Appendix~\ref{app:classes}) \\
+\code{src/main/resources/\allowbreak templates} & Thymeleaf pages, one folder per role \\
+\code{src/main/resources/\allowbreak static} & Stylesheet, script and images of the interface \\
+\code{src/main/resources/\allowbreak application*.yml} & Settings: default (H2), \code{dev}, \code{demo} (PostgreSQL) \\
+\code{src/test/java} & JUnit 5 tests \\
+\code{docs/} & This report and its diagrams, decision log, test cases, plan \\
+\code{docker-compose.yml} & PostgreSQL 16 for the demo profile \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Requirements and commands}
+Java 21 (JDK) and Maven 3.9 are required; Docker is needed only for the PostgreSQL profile. The first build downloads the dependencies, including the bundled front-end libraries, after which the application runs offline.
 
 \begin{tabularx}{\linewidth}{@{}L{5.6cm}Y@{}}
 \toprule
@@ -508,7 +632,24 @@ The complete source code is in the Git repository \url{\repourl}. It contains 16
 Run the tests & \code{mvn test} \\
 Run with the in-memory database & \code{mvn spring-boot:run}, then open \code{http://localhost:8080} \\
 Run with PostgreSQL & \code{docker compose up -d}, then \code{mvn spring-boot:run -Dspring-boot.run.profiles=demo} \\
-Enable the Gemini AI advisor (optional) & set the environment variable \code{GEMINI\_API\_KEY} \\
+Developer profile (H2 console, SQL log) & \code{mvn spring-boot:run -Dspring-boot.run.profiles=dev} \\
+Enable the Gemini AI advisor & set the environment variable \code{GEMINI\_API\_KEY} \\
+Windows one-click start & \code{run.bat} (uses \code{start-app.ps1}, opens the browser when ready) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Configuration}
+\begin{tabularx}{\linewidth}{@{}L{6.2cm}Y@{}}
+\toprule
+\textbf{Setting} & \textbf{Effect} \\
+\midrule
+\code{itsm.priority.strategy} & \code{weighted} (default) or \code{matrix} \\
+\code{itsm.sla.monitor-interval} & How often the SLA monitor runs (default 20 seconds) \\
+\code{itsm.sla.risk-threshold} & Fraction of an SLA window after which an incident is at risk (0.75) \\
+\code{itsm.duplicates.threshold} & Similarity at which a report is flagged as a duplicate (0.5) \\
+\code{itsm.escalation.enabled} & Turns automatic escalation on or off \\
+\code{itsm.demo-data.enabled} & Creates demo accounts, services and history on an empty database \\
+\code{itsm.notifications.channels.*} & Channels per role (in-app, e-mail, SMS) \\
 \bottomrule
 \end{tabularx}
 
@@ -523,19 +664,47 @@ Enable the Gemini AI advisor (optional) & set the environment variable \code{GEM
 \end{itemize}
 
 \section{Team Contributions}
-\begin{tabularx}{\linewidth}{@{}L{3.6cm}L{4.6cm}Y@{}}
+The work was divided by module so that every member owns a clearly identifiable part of the system, as the brief requires, while all four members took part in the design discussions, code reviews and testing and can explain the whole system. Each member presents their own module in the demonstration video.
+
+\begin{longtable}{@{}L{3.5cm}L{5.3cm}L{6.4cm}@{}}
 \toprule
-\textbf{Member (ID)} & \textbf{Module} & \textbf{Key classes} \\
+\textbf{Member} & \textbf{Module and responsibilities} & \textbf{Main classes and artefacts} \\
+\midrule\endhead
+\textbf{Vijay Srivathsan B}\newline 2024B3A70537H & Architecture and domain model: layered design, \code{Incident} aggregate, user hierarchy, State pattern, factories; persistence and database design; domain events, audit trail and notification design; integration and the report. & \code{Incident}, \code{User} hierarchy, \code{domain.incident.state}, \code{IncidentFactory}, \code{UserFactory}, repositories, \code{AuditListener}, \code{NotificationListener}, ER design \\
+\textbf{Harish MP}\newline 2024B5A70641H & Business rules: priority strategies, SLA policies and deadline tracking, the background SLA monitor and risk detection, technician assignment strategies and the runtime registry, automatic escalation. & \code{priority} package, \code{SlaService}, \code{SlaMonitorService}, \code{ThresholdSlaRiskEvaluator}, \code{assignment} package, \code{EscalationService} \\
+\textbf{Sathvik T Hatwar}\newline 2024B3A70509H & Intelligent features and analytics: duplicate detection and correlation, category and resolution suggestions, the Gemini AI advisor, the service dependency graph, Chart.js dashboard, CSV export, one-click Windows start-up. & \code{intelligence} package, \code{AiIncidentAdvisor}, \code{ITService} dependencies, \code{ReportService}, CSV export, \code{start-app.ps1} \\
+\textbf{Vishnu Rahul}\newline 2024B4AD0542H & User interface and security: role-specific Thymeleaf pages, theme and accessibility, Spring Security configuration, exception handling, search; the automated test suite and the documented test cases. & \code{web} package, templates, \code{app.css}, \code{SecurityConfig}, \code{GlobalExceptionHandler}, \code{SearchService}, test suite, \code{docs/test-cases.md} \\
+\bottomrule
+\end{longtable}
+
+\subsection{Demonstration plan}
+\begin{tabularx}{\linewidth}{@{}L{3.6cm}L{2.2cm}Y@{}}
+\toprule
+\textbf{Presenter} & \textbf{Time} & \textbf{Part of the video} \\
 \midrule
-\textit{(name, ID)} & Domain model, OOP, State pattern & \code{Incident}, \code{User} hierarchy, \code{domain.incident.state} \\
-\textit{(name, ID)} & Priority, SLA, assignment & \code{priority}, \code{sla}, \code{assignment} \\
-\textit{(name, ID)} & User interface and security & \code{web}, templates, \code{SecurityConfig} \\
-\textit{(name, ID)} & Persistence, notifications, audit & \code{repository}, \code{notification}, \code{audit} \\
-\textit{(name, ID)} & Testing and intelligent features & \code{intelligence}, test suite \\
+Vijay Srivathsan B & 0--5 min & Introduction, architecture, domain model and State pattern; workflow 1 (report $\rightarrow$ prioritise $\rightarrow$ assign $\rightarrow$ notify) and the audit trail. \\
+Harish MP & 5--9 min & Priority working, SLA countdown and risk badge, switching the assignment strategy; workflow 2 (investigate $\rightarrow$ resolve $\rightarrow$ verify $\rightarrow$ close). \\
+Sathvik T Hatwar & 9--14 min & Workflow 3: duplicate detection, outage hotspot and escalation; AI advisor, dependency impact, charts and CSV export. \\
+Vishnu Rahul & 14--18 min & Role-based interfaces and access control (403), dark mode and phone layout, search, the test suite running, and a rejected illegal transition. \\
 \bottomrule
 \end{tabularx}
 
 \section{Conclusion}
 I-ITSM shows how object-oriented design keeps a realistic system maintainable: each incident status is its own class, each algorithm is a swappable strategy, side effects hang off events, and new categories, strategies or channels are added without editing unrelated code. The application covers every MVP requirement of the brief, implements all seven suggested intelligent features plus three extensions, and is backed by 249 automated tests.
+
+\clearpage
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+\section{Class Catalogue}\label{app:classes}
+Every type in \code{src/main/java}, grouped by package, with the first sentence of its Javadoc as its responsibility. This is the list each member uses to explain any class in the viva.
+{\small\input{appendix-classes}}
+
+\section{Documented Test Cases}\label{app:tests}
+All 108 documented test cases, covering normal operations, boundary conditions, invalid inputs, exceptions, authorisation and business rules. Each is implemented as an automated JUnit test and passes.
+{\small\input{appendix-tests}}
+
+\section{Design Decision Log}\label{app:decisions}
+Notable design decisions, with the alternatives considered and the reasons, from \code{docs/decisions.md}.
+{\small\input{appendix-decisions}}
 
 \end{document}

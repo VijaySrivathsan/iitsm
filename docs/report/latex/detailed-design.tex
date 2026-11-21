@@ -1,0 +1,304 @@
+% ================================================================== Detailed design
+\section{Detailed Design of the Main Modules}
+This chapter explains how each major requirement of the brief is realised in code, with the rules, the algorithms and short excerpts from the source. Every excerpt is copied from the repository; import lines and some comments are left out, and long lines are re-wrapped to fit the page.
+
+\subsection{Incident lifecycle (State pattern)}
+The brief requires a well-defined lifecycle that prevents inappropriate transitions. The persisted status is a simple enum (\code{IncidentStatus}); \code{IncidentStateRegistry}, an \code{EnumMap}, maps every status to one stateless object implementing \code{IncidentState}. \code{AbstractIncidentState} rejects every operation by default, and each concrete state overrides only the operations it allows, so a new or forgotten operation is safe by construction.
+
+\begin{longtable}{@{}L{2.9cm}L{4.4cm}L{7.9cm}@{}}
+\toprule
+\textbf{Status} & \textbf{Allowed operations} & \textbf{Result} \\
+\midrule\endhead
+NEW & classify & $\rightarrow$ CLASSIFIED (priority calculated, SLA clock started) \\
+CLASSIFIED & classify, assign & re-classify (stays CLASSIFIED); assign $\rightarrow$ ASSIGNED \\
+ASSIGNED & acknowledge, assign & acknowledge $\rightarrow$ ACKNOWLEDGED (response time recorded); reassign \\
+ACKNOWLEDGED & start work, assign & start $\rightarrow$ IN\_PROGRESS; reassign $\rightarrow$ ASSIGNED \\
+IN\_PROGRESS & request info, resolve, assign & request $\rightarrow$ PENDING\_INFO; resolve $\rightarrow$ RESOLVED (resolution time recorded) \\
+PENDING\_INFO & provide info & reporter answers $\rightarrow$ IN\_PROGRESS \\
+RESOLVED & verify, reopen & verify $\rightarrow$ VERIFIED; reopen $\rightarrow$ IN\_PROGRESS \\
+VERIFIED & close & $\rightarrow$ CLOSED \\
+CLOSED & none & final state; every operation is rejected \\
+\bottomrule
+\end{longtable}
+
+\begin{lstlisting}[caption={The state contract and its default ``reject everything'' base class}]
+public interface IncidentState {
+    IncidentStatus status();
+    Set<IncidentOperation> allowedOperations();      // drives which buttons the UI shows
+    IncidentStatus classify();
+    IncidentStatus assign();
+    IncidentStatus acknowledge();
+    // ... startWork, requestInfo, provideInfo, resolve, verify, reopen, close
+}
+
+abstract class AbstractIncidentState implements IncidentState {
+    protected final IncidentStatus reject(IncidentOperation operation) {
+        throw new InvalidStateTransitionException(status, operation);
+    }
+    @Override public IncidentStatus classify() { return reject(IncidentOperation.CLASSIFY); }
+    @Override public IncidentStatus close()    { return reject(IncidentOperation.CLOSE); }
+    // ... every other operation is rejected in the same way
+}
+
+final class AssignedState extends AbstractIncidentState {
+    AssignedState() {
+        super(IncidentStatus.ASSIGNED,
+              EnumSet.of(IncidentOperation.ACKNOWLEDGE, IncidentOperation.ASSIGN));
+    }
+    @Override public IncidentStatus acknowledge() { return IncidentStatus.ACKNOWLEDGED; }
+    @Override public IncidentStatus assign()      { return IncidentStatus.ASSIGNED; }
+}
+\end{lstlisting}
+
+Responsibilities are split deliberately (decision D9): a \emph{state} decides whether an operation is legal and which status follows; the \code{Incident} asks its state first and only then changes its own fields, so a rejected operation leaves the object untouched; \code{IncidentService} decides \emph{who} may perform the operation (reporter, assignee or administrator) and publishes the resulting event.
+
+\subsection{Priority determination (Strategy pattern)}
+Priority is never typed in by a user. \code{PriorityService} delegates to the configured \code{PriorityStrategy}; two strategies are provided and the active one is chosen in \code{application.yml}.
+
+\subsubsection*{Weighted scoring (default)}
+\[ \textit{score} = \textit{impact}\,(1\text{--}3) \times \textit{urgency}\,(1\text{--}3) \times \textit{business criticality}\,(1\text{--}5) \times \textit{user factor} \]
+
+\begin{tabularx}{\linewidth}{@{}YYYY@{}}
+\toprule
+\textbf{Affected users} & \textbf{User factor} & \textbf{Score} & \textbf{Priority} \\
+\midrule
+1--9 & 1.0 & $\geq 30$ & P1 Critical \\
+10--99 & 1.2 & 15 -- 29.9 & P2 High \\
+100--999 & 1.5 & 6 -- 14.9 & P3 Medium \\
+1000 or more & 2.0 & below 6 & P4 Low \\
+\bottomrule
+\end{tabularx}
+
+\begin{tabularx}{\linewidth}{@{}L{3.6cm}L{2.6cm}Y L{1.2cm}@{}}
+\toprule
+\textbf{Example} & \textbf{Inputs} & \textbf{Working} & \textbf{Result} \\
+\midrule
+Payment application down & High, High, crit.\ 5, 500 users & $3 \times 3 \times 5 = 45$; $\times 1.5 = 67.5$ & P1 \\
+VPN split tunnelling broken & Medium, High, crit.\ 4, 40 users & $2 \times 3 \times 4 = 24$; $\times 1.2 = 28.8$ & P2 \\
+E-mail delays & Medium, Medium, crit.\ 3, 5 users & $2 \times 2 \times 3 = 12$; $\times 1.0 = 12$ & P3 \\
+HR portal cosmetic issue & Low, Low, crit.\ 2, 1 user & $1 \times 1 \times 2 = 2$; $\times 1.0 = 2$ & P4 \\
+\bottomrule
+\end{tabularx}
+
+\begin{lstlisting}[caption={WeightedScoringPriorityStrategy.calculate}]
+@Override
+public PriorityResult calculate(PriorityInput input) {
+    int base = input.impact().weight() * input.urgency().weight() * input.businessCriticality();
+    double factor = affectedUsersFactor(input.affectedUsers());
+    double score = base * factor;
+    Priority priority = toPriority(score);
+    String explanation = String.format(Locale.ROOT,
+            "Impact %s(%d) x Urgency %s(%d) x Criticality %d = %d; "
+                + "x %.1f for %d affected user(s) = %.1f -> %s",
+            input.impact().label(), input.impact().weight(),
+            input.urgency().label(), input.urgency().weight(),
+            input.businessCriticality(), base, factor, input.affectedUsers(),
+            score, priority.display());
+    return new PriorityResult(priority, explanation);
+}
+\end{lstlisting}
+
+The explanation string is stored on the incident and shown on its page, so the result is always auditable (Figure~\ref{fig:created}).
+
+\subsubsection*{ITIL matrix (alternative)}
+\code{MatrixPriorityStrategy} implements the classic impact $\times$ urgency matrix with a nested \code{EnumMap}. It ignores criticality and affected users, which is simpler but less precise; the test suite shows that the same input gives P1 with the weighted strategy and P3 with the matrix, which demonstrates polymorphism through one interface.
+
+\begin{tabularx}{0.62\linewidth}{@{}l YYY@{}}
+\toprule
+ & \textbf{Urgency High} & \textbf{Medium} & \textbf{Low} \\
+\midrule
+\textbf{Impact High} & P1 & P2 & P3 \\
+\textbf{Impact Medium} & P2 & P3 & P4 \\
+\textbf{Impact Low} & P3 & P4 & P4 \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Technician assignment (Strategy pattern with a runtime registry)}
+\code{AssignmentService} first filters eligible technicians (active, available and below their maximum workload) and then asks the active \code{AssignmentStrategy} to rank them. \code{AssignmentStrategyRegistry} receives every strategy from Spring as a list, and the administrator switches the active one on the \emph{Assignment strategy} screen; the choice is stored as a setting, so no code changes and no restart are needed.
+
+\begin{longtable}{@{}L{3.3cm}L{7.6cm}L{4.3cm}@{}}
+\toprule
+\textbf{Strategy} & \textbf{Rule} & \textbf{Data structure} \\
+\midrule\endhead
+Skill-based (default) & Only technicians skilled in the incident's category; least busy first. & Stream filter + comparator \\
+Load-based & Least busy technician first, regardless of skills. & \code{PriorityQueue} (min-heap) \\
+Round-robin & Rotates among skilled technicians in turn, per category. & \code{ConcurrentHashMap} of \code{AtomicInteger} \\
+Smart recommendation (feature D) & Score out of 100 with an explanation (below). & Sorted list of scores \\
+\bottomrule
+\end{longtable}
+
+\begin{lstlisting}[caption={The assignment contract and the load-based strategy}]
+public interface AssignmentStrategy {
+    String name();
+    String description();
+    List<TechnicianScore> rank(Incident incident, List<Candidate> candidates);
+    default Optional<Technician> select(Incident incident, List<Candidate> candidates) {
+        return rank(incident, candidates).stream().findFirst().map(TechnicianScore::technician);
+    }
+}
+
+@Component
+public class LoadBasedAssignmentStrategy implements AssignmentStrategy {
+    @Override
+    public List<TechnicianScore> rank(Incident incident, List<Candidate> candidates) {
+        PriorityQueue<Candidate> byLoad = new PriorityQueue<>(
+                Comparator.comparingInt(Candidate::activeIncidents)
+                          .thenComparing(Candidate::username));
+        byLoad.addAll(candidates);
+        List<TechnicianScore> ranking = new ArrayList<>(candidates.size());
+        while (!byLoad.isEmpty()) {
+            Candidate c = byLoad.poll();
+            ranking.add(new TechnicianScore(c.technician(), 100 - c.activeIncidents(),
+                    c.activeIncidents(), c.activeIncidents() + " active incident(s) of max "
+                    + c.technician().getMaxWorkload()));
+        }
+        return ranking;
+    }
+}
+\end{lstlisting}
+
+\subsubsection*{Smart recommendation score}
+\[ 40 \cdot \textit{skill} + 25 \cdot (1 - \tfrac{\textit{active}}{\textit{max}}) + 15 \cdot \tfrac{\textit{experience}}{5} + 10 \cdot \tfrac{\min(\textit{handled on service},\,5)}{5} + 10 \cdot [\textit{P1/P2 and senior}] \]
+Worked example: a P1 database incident and a database-skilled technician with 1 of 5 incidents active, experience level 5 and 3 past incidents on the service scores $40 + 20 + 15 + 6 + 10 = 91$. A technician without the skill, otherwise identical, scores 51. The administrator sees the score and its breakdown in the assignment drop-down (``Why these scores?'').
+
+\subsection{SLA management}
+\code{SlaService} finds the applicable \code{SlaPolicy}: a policy for the incident's service and priority if one exists, otherwise the default policy for the priority; if neither exists, \code{MissingSlaConfigurationException} is raised. The deadlines are stored in the embedded \code{SlaRecord}, and the incident records the response time when it is acknowledged and the resolution time when it is resolved, so no caller can forget to do it.
+
+\begin{tabularx}{\linewidth}{@{}L{2cm}L{3.2cm}L{3.4cm}Y@{}}
+\toprule
+\textbf{Priority} & \textbf{Response target} & \textbf{Resolution target} & \textbf{Demo override} \\
+\midrule
+P1 & 5 minutes & 30 minutes & Payment Gateway: 2 min / 10 min \\
+P2 & 15 minutes & 2 hours & -- \\
+P3 & 1 hour & 8 hours & -- \\
+P4 & 4 hours & 24 hours & -- \\
+\bottomrule
+\end{tabularx}
+
+The background \code{SlaMonitor} (\code{@Scheduled}, every 20 seconds) asks \code{SlaMonitorService} to check every open incident. A deadline that passes marks the record BREACHED once and permanently and publishes \code{SLA\_VIOLATED}; an incident that the \code{SlaRiskEvaluator} judges to be at risk publishes \code{SLA\_APPROACHING} once (feature E).
+
+\begin{lstlisting}[caption={ThresholdSlaRiskEvaluator: when is an incident at risk?}]
+@Override
+public boolean isAtRisk(Incident incident, Instant now, long assigneeActiveIncidents) {
+    SlaRecord sla = incident.getSlaRecord();
+    if (!sla.isStarted() || sla.getStatus() != SlaStatus.ON_TRACK
+            || !incident.getStatus().isOpen()) {
+        return false;
+    }
+    // 75% of the response window has passed and nobody has acknowledged it
+    if (sla.getRespondedAt() == null
+            && fraction(incident.getCreatedAt(), sla.getResponseDue(), now) >= threshold) {
+        return true;
+    }
+    double resolution = sla.elapsedFraction(incident.getCreatedAt(), now);
+    if (resolution >= threshold) {
+        return true;                                   // 75% of the resolution window
+    }
+    // 50% of the window has passed and the assigned technician is at least 80% busy
+    Technician tech = incident.getAssignee();
+    return tech != null && resolution >= BUSY_ELAPSED
+            && assigneeActiveIncidents >= BUSY_LOAD * tech.getMaxWorkload();
+}
+\end{lstlisting}
+
+\subsection{Events, audit trail and notifications (Observer, Strategy, Adapter, Factory)}
+Every state change publishes an immutable \code{IncidentEvent} (type, incident number, actor, previous and new status, description, time). Services never call audit or notification code directly. Two observers listen, synchronously and inside the same transaction:
+\begin{itemize}
+  \item \code{AuditListener} writes one \code{AuditEntry} per event, so an incident change and its audit line are saved together or not at all;
+  \item \code{NotificationListener} looks up the recipients in a rule table (an \code{EnumMap}) and sends the message through every channel that accepts it. A failing channel is logged and skipped; it never blocks the update.
+\end{itemize}
+
+\begin{longtable}{@{}L{4.4cm}L{5.4cm}L{5.4cm}@{}}
+\toprule
+\textbf{Event} & \textbf{Who is notified} & \textbf{Channels} \\
+\midrule\endhead
+Created, classified & Reporter & In-app, e-mail \\
+Technician assigned & Reporter, assigned technician & In-app, e-mail; SMS to the technician if P1/P2 \\
+No technician available & All administrators & In-app, e-mail, SMS \\
+Acknowledged, work started & Reporter & In-app, e-mail \\
+Information requested / provided & Reporter / technician & In-app, e-mail \\
+Resolved, closed & Reporter (and technician on close) & In-app, e-mail \\
+Verified, reopened & Assigned technician & In-app, e-mail \\
+SLA approaching & Technician, team leads & In-app, e-mail, SMS \\
+SLA violated & Technician, team leads, administrators & In-app, e-mail, SMS \\
+Escalated & Technician, escalation target & In-app, e-mail, SMS \\
+Duplicate detected / confirmed & Technician / reporter & In-app, e-mail \\
+\bottomrule
+\end{longtable}
+
+\begin{lstlisting}[caption={The audit observer and the SMS channel, which uses the SmsGateway adapter}]
+@Component
+public class AuditListener {
+    @EventListener
+    @Order(0) // record the audit line before notifications are attempted
+    public void on(IncidentEvent event) {
+        String description = event.description() == null
+                ? event.type().label() : event.type().label() + ": " + event.description();
+        auditEntries.save(new AuditEntry(event.occurredAt(), event.actor(), event.type().name(),
+                event.incidentNumber(), event.previousStatus(), event.newStatus(),
+                truncate(description)));
+    }
+}
+
+@Component
+public class SmsNotificationChannel implements NotificationChannel {
+    @Override public ChannelType type() { return ChannelType.SMS; }
+    @Override public boolean accepts(User recipient, NotificationMessage message) {
+        return message.urgent() && recipient.getPhone() != null;   // SMS only for urgent events
+    }
+    @Override public void send(User recipient, NotificationMessage message) {
+        gateway.send(recipient.getPhone(), message.shortText());    // SmsGateway: Adapter target
+        notifications.save(new Notification(recipient, ChannelType.SMS, message.subject(),
+                message.shortText(), message.incidentNumber(), Instant.now(clock)));
+    }
+}
+\end{lstlisting}
+
+Channels per role come from configuration: employees receive in-app and e-mail messages only, while technicians and administrators also receive SMS for urgent events (SLA approaching or violated, escalation, no technician available, or a P1/P2 assignment). \code{NotificationFactory} builds the subject and text of every message in one place. The \code{EmailGateway} and \code{SmsGateway} interfaces are the Adapter targets: the demo uses \code{LoggingEmailGateway} and \code{LoggingSmsGateway}, which write to an outbox that administrators can inspect, and a real provider (SMTP, Twilio) would be one new class. Adding a push-notification channel would likewise be one new \code{NotificationChannel} implementation.
+
+\shot{15-outbox}{The simulated e-mail and SMS outbox: every message produced by the notification channels.}
+
+\subsection{Exception hierarchy}
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.92\linewidth}
+\begin{lstlisting}[language={},numbers=none,caption={Custom exceptions (all unchecked)}]
+RuntimeException
+ +-- ItsmException (abstract)
+      +-- NotFoundException (abstract)           -> 404 page
+      |    +-- IncidentNotFoundException, ServiceNotFoundException,
+      |        CategoryNotFoundException, UserNotFoundException
+      +-- AssignmentException (abstract)
+      |    +-- TechnicianUnavailableException, WorkloadExceededException
+      +-- UnauthorizedOperationException          -> 403 page
+      +-- InvalidStateTransitionException
+      +-- InvalidInputException
+      +-- MissingSlaConfigurationException
+      +-- DuplicateIncidentException
+      +-- ExternalServiceException                (gateways, AI API)
+\end{lstlisting}
+\end{minipage}
+\end{figure}
+\code{GlobalExceptionHandler} (\code{@ControllerAdvice}) handles each family once: not-found errors show the 404 page, unauthorised operations the 403 page, and the remaining domain errors return the user to the page they came from with a readable message. Because the hierarchy is shallow and grouped, a new exception is handled automatically by its parent's handler.
+
+\subsection{Search and reporting}
+The brief asks for at least five criteria; the search page offers ten, which can be combined freely. Each criterion is a small \code{Specification<Incident>} in \code{IncidentSpecifications} that returns nothing when its field is empty, so only the filters in use are combined. A visibility rule is always added: employees see only their own incidents and technicians the incidents they work on, while team leads and administrators see all.
+
+\begin{tabularx}{\linewidth}{@{}L{3.4cm}Y@{}}
+\toprule
+\textbf{Criterion} & \textbf{Meaning} \\
+\midrule
+Incident number & Exact number, e.g. INC1001 \\
+Text & Words in the title or description \\
+From / to date & Reporting date range \\
+Status, priority & Lifecycle status; P1--P4 \\
+Category, service & Classification and affected IT service \\
+Technician & Assigned technician \\
+SLA status & Not started, on track, at risk, breached, met \\
+\bottomrule
+\end{tabularx}
+
+\code{ReportService} builds the administrator overview: totals, open, open P1, resolved, SLA violations, compliance percentage and average resolution time, the at-risk list, unassigned incidents, technician workload, outage hotspots (feature B) and breakdowns by service, category, priority and status, which also feed the charts. Search results and the audit log can be exported as CSV.
+
+\subsection{Users and factories}
+\code{User} is abstract; \code{Employee}, \code{Technician} and \code{Administrator} add only what is specific to them (department; skills, workload, experience, availability and team-lead flag; IT-manager flag). \code{UserFactory} is the single place where users are created: it validates the details, hashes the password with BCrypt and returns the right subtype. \code{IncidentFactory} likewise turns an employee's \code{IncidentReport} into a valid NEW incident, applying defaults (medium impact and urgency, one affected user), length limits and a title derived from the description when none is given.

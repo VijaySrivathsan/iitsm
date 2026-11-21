@@ -1,0 +1,114 @@
+\begin{longtable}{@{}L{1.0cm}L{1.85cm}L{2.15cm}L{4.05cm}L{5.45cm}@{}}
+\toprule
+\textbf{ID} & \textbf{Area} & \textbf{Type} & \textbf{Scenario} & \textbf{Expected result} \\
+\midrule\endhead
+TC01 & Platform & Normal & Application context starts & All beans created, no errors \\
+TC02 & Web & Normal & Anonymous GET \code{/} & 200 with "I-ITSM is running" \\
+TC03 & Security & Authorization & Anonymous GET \code{/admin} & Redirect (302) to login \\
+TC04 & Users & Normal & Factory creates each role & Employee / Technician / Administrator subtype returned \\
+TC05 & Security & Business rule & New user's password & Stored as BCrypt hash, never raw \\
+TC06 & Users & Invalid input & Password of 5 characters & \code{InvalidInputException} \\
+TC07 & Users & Invalid input & Blank or "bad name!" username & \code{InvalidInputException} \\
+TC08 & Users & Boundary & Technician experience level 6 (max 5) & \code{InvalidInputException} \\
+TC09 & Incidents & Normal & Create incident & Status NEW, number INC1001, SLA NOT\_STARTED \\
+TC10 & Incidents & Invalid input & Blank title / no service / 0 affected users & \code{InvalidInputException} \\
+TC11 & Incidents & Business rule & Modify notes list from outside & \code{UnsupportedOperationException} (encapsulation) \\
+TC12 & Catalog & Boundary & Service criticality 0, 1, 5, 6 & 1 and 5 accepted, 0 and 6 rejected \\
+TC13 & Assignment & Boundary & Technician at 2/3 vs 3/3 workload & Has capacity at 2, not at 3 \\
+TC14 & SLA & Invalid input & Response 0 min, or resolution shorter than response & \code{InvalidInputException} \\
+TC15 & Feedback & Boundary & Rating 0, 1, 5, 6 & 1 and 5 accepted, 0 and 6 rejected \\
+TC16 & Persistence & Normal & Save incident with a note, reload & All fields and the note come back \\
+TC17 & Persistence & Normal & Find technicians by skill & Only active technicians with that skill \\
+TC18 & Persistence & Normal & Look up user by username & Returns the right subtype (polymorphic query) \\
+TC19 & SLA & Normal & Service-specific vs default SLA policy & Specific found for service, default otherwise, none for missing \\
+TC20 & Lifecycle & Business rule & Every (status, operation) pair: 9 statuses x 10 operations & 14 legal pairs reach the planned status; the other 76 throw \code{InvalidStateTransitionException} \\
+TC21 & Lifecycle & Exception & Close a NEW incident & \code{InvalidStateTransitionException}: "Cannot close an incident that is NEW" \\
+TC22 & Lifecycle & Normal & Report $\rightarrow$ classify $\rightarrow$ assign $\rightarrow$ acknowledge $\rightarrow$ start $\rightarrow$ request/provide info $\rightarrow$ resolve $\rightarrow$ verify $\rightarrow$ close & Ends CLOSED with resolution, feedback, notes \\
+TC23 & Lifecycle & Business rule & Illegal operation on a NEW incident & Exception thrown and no field changed \\
+TC24 & Lifecycle & Business rule & Reporter reopens a resolved incident & Back IN\_PROGRESS, old resolution cleared, reason logged \\
+TC25 & Incidents & Normal & Two employees report incidents & INC1001 and INC1002 created as NEW; CREATED events published \\
+TC26 & Authorization & Authorization & Technician tries to report an incident & \code{UnauthorizedOperationException} \\
+TC27 & Observer & Normal & Full lifecycle through the service & One event per step, in order, with previous and new status \\
+TC28 & Authorization & Authorization & Employee tries to resolve & \code{UnauthorizedOperationException} \\
+TC29 & Authorization & Authorization & Technician acknowledges someone else's incident & \code{UnauthorizedOperationException} \\
+TC30 & Authorization & Authorization & Employee views another employee's incident & Rejected; reporter and admin can view \\
+TC31 & Assignment & Exception & Assign to an unavailable technician & \code{TechnicianUnavailableException} \\
+TC32 & Assignment & Boundary & Assign to a technician already at max workload (1/1) & \code{WorkloadExceededException} \\
+TC33 & Incidents & Exception & View INC9999 (does not exist) & \code{IncidentNotFoundException} \\
+TC34 & Priority & Business rule & Plan examples: payment outage, VPN, email, HR portal & P1, P2, P3, P4 \\
+TC35 & Priority & Boundary & Scores 30 / 29.9 / 15 / 14.9 / 6 / 5.9 & P1 / P2 / P2 / P3 / P3 / P4 \\
+TC36 & Priority & Boundary & Affected users 9 / 10 / 99 / 100 / 999 / 1000 & Factor 1.0 / 1.2 / 1.2 / 1.5 / 1.5 / 2.0 \\
+TC37 & Priority & Normal & All 9 impact $\times$ urgency combinations (matrix strategy) & Matches the ITIL matrix \\
+TC38 & Priority & Business rule & Same input, two strategies & Weighted gives P1, matrix gives P3 (interchangeable algorithms) \\
+TC39 & Priority & Invalid input & Configured strategy name "magic" & Start-up fails with a clear message \\
+TC40 & SLA & Boundary & Response exactly at the 5-minute deadline & Not a breach (ON\_TRACK) \\
+TC41 & SLA & Boundary & Response 1 second after the deadline & BREACHED \\
+TC42 & SLA & Business rule & Late response, then resolved in time & Stays BREACHED (breach is permanent) \\
+TC43 & SLA & Business rule & Deadline passes, checked repeatedly & Breach reported only once \\
+TC44 & Classification & Normal & Employee reports with a category & Auto-classified P1, deadlines +5 min / +30 min, CLASSIFIED event by "system" \\
+TC45 & SLA & Exception & Classify with no SLA policy configured & \code{MissingSlaConfigurationException} \\
+TC46 & Priority & Normal & Reporter lowers impact and urgency to LOW & Priority P3, new 8 h deadline, PRIORITY\_CHANGED event \\
+TC47 & SLA & Exception & Technician acknowledges 6 minutes after a P1 is reported & SLA BREACHED, SLA\_VIOLATED event published \\
+TC48 & SLA & Normal & Resolved 20 minutes into a 30-minute window & SLA MET \\
+TC49 & Assignment & Normal & Skill-based: two database technicians and one network technician & Only database technicians, least busy first \\
+TC50 & Assignment & Boundary & Skill-based: two technicians with equal workload & The more experienced one wins \\
+TC51 & Assignment & Normal & Load-based & Least busy first, skills ignored (priority-queue order) \\
+TC52 & Assignment & Normal & Round-robin, three incidents & Turns rotate alice $\rightarrow$ bob $\rightarrow$ alice among skilled technicians \\
+TC53 & Intelligence (D) & Business rule & Smart recommendation & Skilled senior with service history scores 90 and ranks first; the reason explains the score \\
+TC54 & Assignment & Boundary & Any strategy with no candidates & Nobody selected \\
+TC55 & Assignment & Normal & Employee reports a database incident & Auto-assigned to the database technician; CREATED $\rightarrow$ CLASSIFIED $\rightarrow$ ASSIGNED events \\
+TC56 & Assignment & Exception & Only skilled technician is at max workload & Incident stays CLASSIFIED; NO\_TECHNICIAN\_AVAILABLE event \\
+TC57 & Assignment & Business rule & Admin switches strategy from skill to load & Next incident goes to the least busy technician; choice persisted \\
+TC58 & Authorization & Invalid input & Unknown strategy name / employee changes strategy & \code{InvalidInputException} / \code{UnauthorizedOperationException} \\
+TC59 & Assignment & Business rule & Technician marked unavailable & Never a candidate \\
+TC60 & Audit & Normal & Full lifecycle of a P1 incident & 8 audit lines in order with actor (emp1 / system / tech1), previous and new status, timestamps \\
+TC61 & Audit & Normal & Admin filters audit log by actor and by action + incident & Only matching lines returned \\
+TC62 & Authorization & Authorization & Employee reads the system-wide audit log & \code{UnauthorizedOperationException} \\
+TC63 & Notification & Normal & P1 incident auto-assigned & Technician gets in-app, email and SMS; gateway outboxes show the email and SMS \\
+TC64 & Notification & Business rule & P4 incident assigned & In-app only, no SMS (not urgent) \\
+TC65 & Notification & Business rule & Employee with a phone number & Never receives SMS (role preferences) \\
+TC66 & Notification & Business rule & Technician acknowledges & Reporter notified; technician not notified of their own action \\
+TC67 & Notification & Exception & No technician available for a P1 & Administrators alerted (in-app + SMS) \\
+TC68 & Authorization & Authorization & Marking someone else's notification read / non-admin viewing the outbox & \code{UnauthorizedOperationException} \\
+TC69 & Notification & Exception & SMS provider unreachable & Incident still created and assigned; in-app and email still delivered \\
+TC70 & Security & Authorization & Anonymous user opens /employee & Redirected to the login page \\
+TC71 & Security & Invalid input & Log in with a wrong password & Redirect to /login?error \\
+TC72 & Security & Normal & Log in as emp1 & Redirect to /dashboard, then to /employee \\
+TC73 & Authorization & Authorization & Employee opens /admin; technician opens /employee/report & 403 \\
+TC74 & Web & Normal & Admin opens all 9 admin pages & All render (200) \\
+TC75 & Web & Normal & Employee submits a valid report form & Redirect to the new incident page with a success message \\
+TC76 & Web & Invalid input & Report form with no service, blank description, 0 users & Form shown again with field errors; nothing saved \\
+TC77 & Security & Exception & Form POST without a CSRF token & 403 \\
+TC78 & Users & Normal / Invalid input & Register a new employee; register with a taken username & Account created as EMPLOYEE; duplicate refused with an error \\
+TC79 & Authorization & Authorization & tech2 resolves tech1's incident; emp2 views emp1's incident & 403 \\
+TC80 & Lifecycle & Exception & Technician resolves an ASSIGNED (not started) incident via the UI & Back on the incident page with "Cannot resolve an incident that is ASSIGNED" \\
+TC81 & Authorization & Business rule & Actions shown for technician / reporter / admin / other employee & Each sees only what they may do; the other employee sees nothing \\
+TC82 & Intelligence (A) & Normal & Text normalisation of the brief's examples & Stopwords dropped; transaction/checkout $\rightarrow$ payment; unavailable/failing/unable $\rightarrow$ outage \\
+TC83 & Intelligence (A) & Normal & Three employees report the payment problem in different words & 2nd and 3rd flagged as possible duplicates of the original INC1001; correlated on the service \\
+TC84 & Intelligence (A) & Normal & Unrelated VPN report & Not flagged \\
+TC85 & Intelligence (A) & Exception & Same employee repeats the same report after 10 minutes & \code{DuplicateIncidentException} naming INC1001 \\
+TC86 & Intelligence (A) & Boundary & Same employee repeats it after 61 minutes & Accepted as INC1002 \\
+TC87 & Authorization & Authorization & Employee vs assigned technician confirming a duplicate & Employee refused; technician links the incidents \\
+TC88 & Intelligence (E) & Boundary & P1 at 73\% / 77\% / 80\% of its window, then past the deadline & Warning at 77\% only, once; breach reported once \\
+TC89 & Intelligence (E) & Boundary & P3 at 74.8\% vs 75\%; 50\% with technician 3/5 vs 4/5 busy & At risk at 75\%, or at 50\% when 80\% busy \\
+TC90 & Intelligence (C) & Normal & Unacknowledged P1 at 5, 6, 8, 11, 16, 30 min & Escalated to lead1 (6), sysadmin (11), admin (16); nothing at 5, 8, 30; targets notified \\
+TC91 & Intelligence (C) & Business rule & Technician acknowledges after the first escalation & No further escalations \\
+TC92 & Intelligence (C) & Business rule & P4 left for 24 hours & Never escalated \\
+TC93 & Search & Normal & Each of the 10 filters on its own (incl. date boundaries) & Only matching incidents \\
+TC94 & Search & Normal & Category + status combined & AND of both filters \\
+TC95 & Authorization & Authorization & Search as employee / technician / team lead & Own / assigned / all incidents only \\
+TC96 & Reports & Normal & Dashboard figures for 3 incidents & Totals, P1 open, 100\% SLA compliance, 30 min average fix, breakdowns, unassigned list \\
+TC97 & Intelligence (C) & Business rule & Overdue P1 assigned to the only team lead & Level 1 skipped; escalated straight to the system administrator \\
+TC98 & Intelligence (F) & Normal / Boundary & Suggest a category for "VPN keeps dropping", "cannot complete payment", unrelated text, empty text & NETWORK, APPLICATION, none, none \\
+TC99 & Intelligence (G) & Normal & New payment timeout after a resolved UPI timeout; unrelated VPN incident & Past fix suggested for the first; nothing for the second \\
+TC100 & Demo data & Normal & Fresh start-up & 9 users, $\geq$25 past incidents (closed on time, closed late, open overdue), all numbered below INC1001, audit history present \\
+TC101 & Demo data & Business rule & Loader runs again on a populated database & Nothing added (idempotent) \\
+TC102 & Catalog & Normal / Graph & Service dependency graph traversal: add/remove dependencies and check self-dependency guard & Upstream dependencies set, self-dependency prevented \\
+TC103 & Intelligence (AI) & Normal / Fallback & AI Incident Advisor triage \& root cause analysis with unconfigured API key & Local heuristic generates triage summary, investigation steps \& root-cause hypothesis \\
+TC104 & Web / Export & Normal & Admin exports audit trail to CSV format (\code{/admin/audit/export}) & Status 200, Content-Type \code{text/csv}, Content-Disposition attachment \code{audit-log.csv} \\
+TC105 & Web / Export & Normal & User exports search results to CSV format (\code{/search/export}) & Status 200, Content-Type \code{text/csv}, Content-Disposition attachment \code{incidents-export.csv} \\
+TC106 & Intelligence (AI) & Boundary & AI Incident Advisor on a NEW (unclassified) incident with no priority yet & Advice is produced and says the incident is not yet prioritised; no NullPointerException (incident page renders) \\
+TC107 & Web / UI & Normal & Load Bootstrap, Chart.js and \code{app.js} without logging in & Status 200 for each: assets are served by the app (no CDN needed) and are public \\
+TC108 & Web / UI & Normal & Open the login page & Page offers the light/dark theme switcher and links no CDN assets \\
+\bottomrule
+\end{longtable}

@@ -1,0 +1,197 @@
+% generated from the Javadoc of every class in src/main/java (164 types)
+\begin{longtable}{@{}L{4.6cm}L{1.9cm}L{8.6cm}@{}}
+\toprule
+\textbf{Type} & \textbf{Kind} & \textbf{Responsibility} \\
+\midrule\endhead
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain}}} \\
+\code{Base\-Entity} & abstract class & Common identity for every persistent entity: a database-generated id, an optimistic-locking version, and id-based equality (two objects are the same entity if they share an id). \\
+\code{Checks} & class & Small guard helpers used by domain constructors and methods to protect their invariants. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.user}}} \\
+\code{Administrator} & class & An administrator / IT manager who configures the system and monitors incidents. \\
+\code{Employee} & class & An employee/customer who reports incidents and follows them until they are closed. \\
+\code{New\-User} & record & Details common to every new user, passed to UserFactory. The raw password is hashed by the factory and never stored. \\
+\code{Role} & enum & Security role of a user. Each User subtype maps to exactly one role. \\
+\code{Technician} & class & A support engineer who investigates and resolves incidents. Skills are an aggregation of Category objects: categories exist independently of any technician and are shared between many technicians. \\
+\code{User} & abstract class & Anyone who can log in. Abstract because every real user is exactly one of Employee, Technician or Administrator (genuine "is-a" relationships). \\
+\code{User\-Factory} & class & Factory pattern: the single place that creates User objects. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.incident}}} \\
+\code{Feedback} & class & The reporter's rating (1-5) and comment after resolution. An immutable value embedded in the incident row (composition). \\
+\code{Impact} & enum & How widely an incident affects the business. The weight feeds the priority calculation. \\
+\code{Incident} & class & The central aggregate: one reported IT problem and everything that happens to it. \\
+\code{Incident\-Factory} & class & Factory pattern: turns an employee's IncidentReport into a valid NEW Incident. \\
+\code{Incident\-Number} & record & Value object for the human-readable incident number shown to users, e.g. INC1001. \\
+\code{Incident\-Operation} & enum & The lifecycle operations that can be requested on an incident. \\
+\code{Incident\-Report} & record & What an employee fills in when reporting a problem. Passed to IncidentFactory. \\
+\code{Incident\-Status} & enum & Persisted lifecycle status of an incident. Which transitions are legal is decided by the State pattern classes in domain.incident.state (Milestone 3), not by this enum. \\
+\code{Investigation\-Note} & class & One entry in an incident's investigation log: a technician note, an information request, or the reporter's reply. \\
+\code{Note\-Type} & enum & Kind of entry in an incident's conversation/investigation log. \\
+\code{Priority} & enum & Incident priority, P1 being the most urgent. Calculated by a PriorityStrategy (Milestone 4). \\
+\code{Resolution} & class & How an incident was fixed. An immutable value embedded in the incident row (composition). \\
+\code{Urgency} & enum & How quickly the business needs an incident fixed. The weight feeds the priority calculation. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.incident.state}}} \\
+\code{Abstract\-Incident\-State} & abstract class & Default behaviour for every state: reject every operation. Concrete states override only the operations they allow, so an illegal transition (e.g. NEW $\rightarrow$ CLOSED) can never slip through. \\
+\code{Acknowledged\-State} & class & The technician has accepted the incident (the SLA response time is met here). \\
+\code{Assigned\-State} & class & A technician has been given the incident but has not acknowledged it yet (escalation watches this state). \\
+\code{Classified\-State} & class & Category, priority and SLA are set; waiting for a technician. \\
+\code{Closed\-State} & class & Final state. Every operation is rejected. \\
+\code{In\-Progress\-State} & class & The technician is investigating. They can ask the reporter for information or resolve it. \\
+\code{Incident\-State} & interface & State pattern: one implementation per lifecycle status. Each operation either returns the status the incident moves to, or throws InvalidStateTransitionException if it is not allowed in this state. \\
+\code{Incident\-State\-Registry} & class & Maps each persisted IncidentStatus to its IncidentState object. \\
+\code{New\-State} & class & Just reported. The only way forward is classification (category, priority, SLA). \\
+\code{Pending\-Info\-State} & class & Waiting for the reporter to answer an information request. \\
+\code{Resolved\-State} & class & A fix has been provided. The reporter verifies it, or reopens the incident if it is not fixed. \\
+\code{Verified\-State} & class & The reporter confirmed the fix. Ready to be closed. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.catalog}}} \\
+\code{Category} & class & An incident category such as Network or Database. Categories are stored as data rather than a Java enum, so an administrator can add a new one without changing or redeploying code (open-closed principle). \\
+\code{ITService} & class & An IT service the organisation runs (Payment Gateway, Email, VPN, ...). \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.sla}}} \\
+\code{Sla\-Policy} & class & Response and resolution targets for one priority, either for a specific service or - when service is null - the default for all services. \\
+\code{Sla\-Record} & class & The SLA timings of one incident: deadlines, when they were actually met, and the resulting status. \\
+\code{Sla\-Status} & enum & Where an incident stands against its SLA. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.audit}}} \\
+\code{Audit\-Entry} & class & One immutable line of the audit trail, e.g. "10:07 - INC1024 assigned to tech1 by system". \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.priority}}} \\
+\code{Matrix\-Priority\-Strategy} & class & Alternative algorithm: the classic ITIL impact x urgency matrix. \\
+\code{Priority\-Input} & record & Everything a PriorityStrategy may use to decide priority. A small value object, so strategies can be tested without building a whole incident. \\
+\code{Priority\-Result} & record & The outcome of a priority calculation: the priority plus a human-readable explanation of how it was reached (shown on the incident page so users can see why it is P1). \\
+\code{Priority\-Service} & class & Holds every PriorityStrategy Spring finds and delegates to the one named in itsm.priority.strategy. \\
+\code{Priority\-Strategy} & interface & Strategy pattern: an interchangeable algorithm for turning incident facts into a priority. \\
+\code{Weighted\-Scoring\-Priority\-Strategy} & class & Default priority algorithm (docs/plan.md section 5): Example: payment outage, HIGH x HIGH x 5 = 45, x 1.5 for 500 users = 67.5 $\rightarrow$ P1. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.assignment}}} \\
+\code{Assignment\-Service} & class & Everything about who works on an incident: automatic assignment with the active AssignmentStrategy, manual (re)assignment, smart recommendations and workload figures. \\
+\code{Assignment\-Strategy} & interface & Strategy pattern: an interchangeable rule for choosing a technician. \\
+\code{Assignment\-Strategy\-Registry} & class & Knows every AssignmentStrategy (Spring injects all implementations) and which one is active. \\
+\code{Candidate} & record & A technician who could take an incident, together with the numbers a strategy needs. \\
+\code{Load\-Based\-Assignment\-Strategy} & class & Spreads work evenly: the technician with the fewest active incidents wins, whatever their skills. \\
+\code{Round\-Robin\-Assignment\-Strategy} & class & Takes turns: skilled technicians (or everyone, if nobody has the skill) in a fixed order, starting after whoever got the previous incident of that category. \\
+\code{Skill\-Based\-Assignment\-Strategy} & class & Only technicians who have the incident's category as a skill. \\
+\code{Smart\-Recommendation\-Strategy} & class & Intelligent feature D - smart technician recommendation. Scores every candidate out of 100: and explains the score, so an administrator can see why someone was recommended. \\
+\code{Technician\-Score} & record & One entry in a strategy's ranking: who, how good a match (higher is better) and why. \\
+\code{Technician\-Workload} & record & A row of the technician workload report. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.sla}}} \\
+\code{Default\-Sla\-Policy\-Initializer} & class & On start-up, makes sure the default SLA policies (P1-P4) exist, in every profile. \\
+\code{Monitor\-Result} & record & What one SLA monitor run did (for the log and tests). \\
+\code{Sla\-Monitor} & class & Background job: runs the SLA checks on a fixed delay (itsm.sla.monitor-interval, default one minute). \\
+\code{Sla\-Monitor\-Service} & class & One pass of continuous SLA monitoring (run every minute by SlaMonitor): for every open incident, detect breaches (SLA\_VIOLATED) and SLA risk (SLA\_APPROACHING, feature E), then escalate overdue unacknowledged major incidents (feature C). \\
+\code{Sla\-Risk\-Evaluator} & interface & Intelligent feature E - decides whether an incident is likely to miss its SLA, so people are warned before the deadline. \\
+\code{Sla\-Service} & class & Finds which SLA policy applies to an incident: the service's own policy for that priority if one exists, otherwise the default policy for the priority. \\
+\code{Threshold\-Sla\-Risk\-Evaluator} & class & An incident is AT RISK when 75\% (configurable) of the response window has passed and nobody has acknowledged it, or 75\% of the resolution window has passed, or 50\% of the resolution window has passed and the assigned technician is at least 80\% busy. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.event}}} \\
+\code{Incident\-Event} & record & Observer pattern: the "subject" (IncidentService, later also the SLA monitor) publishes one of these after every change, and any number of "observers" (audit, notifications, escalation) listen for it. \\
+\code{Incident\-Event\-Publisher} & class & The single place that turns "something happened to this incident" into an IncidentEvent and hands it to Spring's event bus. \\
+\code{Incident\-Event\-Type} & enum & Everything that can happen to an incident and that other parts of the system may react to (audit, notifications, escalation). \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.audit}}} \\
+\code{Audit\-Listener} & class & Observer: writes one AuditEntry for every IncidentEvent, giving a complete, chronological history (who, what, when, from which status to which). \\
+\code{Audit\-Service} & class & Read access to the audit trail: one incident's history, and the recent system-wide log for administrators with simple filters. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.notification}}} \\
+\code{Audience} & enum & Groups of people who may need to hear about an incident event. \\
+\code{Email\-Gateway} & interface & Adapter pattern - the target interface: what I-ITSM needs from an email provider. \\
+\code{Email\-Notification\-Channel} & class & Sends the notification through the EmailGateway and records it as a delivery log entry. \\
+\code{In\-App\-Notification\-Channel} & class & Stores the notification in the database; the web UI shows it under the bell icon until read. \\
+\code{In\-Memory\-Outbox} & class & A bounded, thread-safe list of the most recent outbox messages. \\
+\code{Logging\-Email\-Gateway} & class & Simulated email provider (the brief allows simulation): instead of contacting a mail server it writes the message to the log and keeps it in an in-memory outbox that administrators can view. \\
+\code{Logging\-Sms\-Gateway} & class & Simulated SMS provider: logs the text (cut to 160 characters, like a real SMS) and keeps it in an in-memory outbox. \\
+\code{Notification\-Channel} & interface & Strategy pattern: one way of delivering a notification (in-app, email, SMS, ...). \\
+\code{Notification\-Factory} & class & Factory pattern: builds the NotificationMessage for an event, so wording lives in one place and every channel sends the same content. \\
+\code{Notification\-Listener} & class & Observer: reacts to every IncidentEvent by deciding who should hear about it (a rule table per event type) and sending the message through each recipient's channels. \\
+\code{Notification\-Message} & record & The content of one notification, independent of how it is delivered. \\
+\code{Notification\-Preferences} & class & Which channels each role receives, configurable in application.yml, e.g. Defaults: everyone gets in-app and email; technicians and administrators also get SMS for urgent messages. \\
+\code{Notification\-Service} & class & The user's in-app inbox (bell icon) and the administrators' view of the simulated email/SMS outbox. \\
+\code{Outbox\-Message} & record & A message handed to a (simulated) external gateway, kept so administrators can see what would have been sent by email or SMS. \\
+\code{Sms\-Gateway} & interface & Adapter pattern - the target interface for SMS providers (Twilio, MSG91, ...). \\
+\code{Sms\-Notification\-Channel} & class & Sends a short text through the SmsGateway - only for urgent messages (major incidents, SLA problems, escalations) and only to users with a phone number. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.intelligence}}} \\
+\code{Ai\-Incident\-Advisor} & class & Intelligent feature - External AI / Google Gemini API integration for incident triage, automated root-cause analysis, and recommended investigation steps. \\
+\code{Category\-Suggester} & class & Intelligent feature F - suggests a category from the incident description by counting how many of each category's keywords (normalised the same way as duplicate detection) appear in the text. \\
+\code{Duplicate\-Detection\-Service} & class & Intelligent features A (duplicate detection) and B (incident correlation). \\
+\code{Duplicate\-Detector} & interface & Intelligent feature A - how alike a new report is to an existing incident. \\
+\code{Duplicate\-Match} & record & An existing incident that looks like the same problem, with its similarity score. \\
+\code{Escalation\-Service} & class & Intelligent feature C - automatic escalation. A major (P1/P2) incident that nobody has acknowledged by its response deadline is escalated one level at a time: team lead, then system administrator, then IT manager - one more response window apart. \\
+\code{Resolution\-Suggester} & class & Intelligent feature G - finds up to three similar incidents that were already resolved and shows how they were fixed, so a technician can reuse past knowledge. \\
+\code{Resolution\-Suggestion} & record & A past incident whose resolution might help with the current one. \\
+\code{Text\-Normalizer} & class & Turns free text into a set of meaningful words so two descriptions can be compared: lower-case, punctuation removed, common words ("the", "is", "to", ...) dropped, simple plurals reduced, and synonyms mapped to one word (e.g. "transaction", "checkout" and... \\
+\code{Text\-Similarity\-Duplicate\-Detector} & class & Word-overlap (Jaccard) similarity of the normalised title + description, plus a bonus when both incidents are on the same IT service. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.service}}} \\
+\code{Catalog\-Service} & class & Administration of the service catalogue, incident categories and SLA policies. \\
+\code{Dashboard\-Report} & record & Figures for the administrator dashboard, computed by ReportService. \\
+\code{Incident\-Action} & enum & Actions a particular user may take on a particular incident right now. \\
+\code{Incident\-Search\-Criteria} & record & The search form: every field is optional, and the filters that are filled in are combined with AND. \\
+\code{Incident\-Service} & class & Application service for the incident use cases (create, view, update, assign, resolve, close). \\
+\code{Report\-Service} & class & Builds the dashboard figures (incident overview, breakdowns per service/category/priority/status, SLA compliance, average resolution time, at-risk incidents and service hotspots). \\
+\code{Search\-Service} & class & Multi-criteria incident search. Results are always limited to what the user may see: administrators and team leads see everything, technicians their assigned incidents, employees their own. \\
+\code{User\-Service} & class & User management: self-registration of employees, and administrator management of users and technicians (skills, capacity, availability, team-lead flag). \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.repository}}} \\
+\code{Administrator\-Repository} & interface & Repository for administrators (also used to find escalation targets). \\
+\code{Audit\-Entry\-Repository} & interface & Repository for the audit trail. \\
+\code{Category\-Repository} & interface & Repository for incident categories. \\
+\code{Employee\-Repository} & interface & Repository for employees (incident reporters). \\
+\code{Escalation\-Repository} & interface & Repository for escalation records. \\
+\code{ITService\-Repository} & interface & Repository for the IT service catalogue. \\
+\code{Incident\-Repository} & interface & Repository for incidents. JpaSpecificationExecutor enables the multi-criteria search built in Milestone 8. \\
+\code{Incident\-Specifications} & class & Small, reusable query conditions (JPA Criteria API) that the search combines with Specification.where(a).and(b)... \\
+\code{Notification\-Repository} & interface & Repository for notifications. \\
+\code{Sla\-Policy\-Repository} & interface & Repository for SLA policies: service-specific ones and the defaults (service = null). \\
+\code{System\-Setting\-Repository} & interface & Repository for runtime settings, keyed by setting name. \\
+\code{Technician\-Repository} & interface & Repository for technicians, including the skill lookups used by assignment strategies. \\
+\code{User\-Repository} & interface & Repository for all users. Queries are polymorphic: a result can be an Employee, Technician or Administrator object. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.web}}} \\
+\code{Admin\-Controller} & class & Administrator pages: overview, all incidents, users and technicians, IT services, categories, SLA policies, assignment strategy, audit log and the simulated email/SMS outbox. \\
+\code{Auth\-Controller} & class & Login page (the login itself is handled by Spring Security) and employee self-registration. \\
+\code{Employee\-Controller} & class & Employee pages: my incidents, and the report form. \\
+\code{Global\-Exception\-Handler} & class & Turns exceptions into friendly pages, in one place: not found $\rightarrow$ 404 page; not allowed $\rightarrow$ 403 page; any other business error (invalid transition, invalid input, technician unavailable, ...) $\rightarrow$ back to the page the user came from, with the message shown as... \\
+\code{Global\-Model\-Attributes} & class & Adds the logged-in user and their unread-notification count (for the bell icon) to every page. \\
+\code{Home\-Controller} & class & Landing page, the role-based "/dashboard" redirect, and the access-denied page. \\
+\code{Incident\-Controller} & class & The incident detail page shared by all roles, and every lifecycle action. \\
+\code{Notification\-Controller} & class & The in-app notification inbox (behind the bell icon). \\
+\code{Search\-Controller} & class & Incident search for every role (results limited to what the user may see). \\
+\code{Suggestion\-Api\-Controller} & class & Small JSON endpoint used by the report form to suggest a category while the employee types (feature F). \\
+\code{Technician\-Controller} & class & Technician pages: the work queue (most urgent SLA first), workload and availability. \\
+\code{View\-Formatter} & class & Formatting helpers for templates, used as \$\{ \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.web.form}}} \\
+\code{Category\-Form} & class & Administrator's form for an incident category. \\
+\code{New\-User\-Form} & class & Administrator's form for creating a user of any role. \\
+\code{Registration\-Form} & class & Self-registration form (employees only). Validated with Bean Validation before reaching the service. \\
+\code{Report\-Incident\-Form} & class & The employee's "report an incident" form. \\
+\code{Service\-Form} & class & Administrator's form for an IT service. \\
+\code{Sla\-Policy\-Form} & class & Administrator's form for an SLA policy (no service = default policy). \\
+\code{Technician\-Form} & class & Administrator's form for a technician's skills and capacity. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.security}}} \\
+\code{Current\-User\-Provider} & class & Gives controllers the logged-in User entity (freshly loaded, so role-specific fields such as a technician's skills are up to date). \\
+\code{Itsm\-User\-Details\-Service} & class & Tells Spring Security how to find a user at login. Password checking (BCrypt) and the "invalid login" response are handled by Spring Security itself. \\
+\code{Itsm\-User\-Principal} & class & Adapter between our User entity and Spring Security's UserDetails. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.exception}}} \\
+\code{Assignment\-Exception} & abstract class & Base class for problems assigning an incident to a technician. \\
+\code{Category\-Not\-Found\-Exception} & class & Thrown when an incident category id or name does not exist. \\
+\code{Duplicate\-Incident\-Exception} & class & Thrown when an employee reports the same problem again shortly after their own identical report. \\
+\code{External\-Service\-Exception} & class & An external system (email server, SMS provider, ...) failed or could not be reached. \\
+\code{Incident\-Not\-Found\-Exception} & class & Thrown when no incident has the requested number. \\
+\code{Invalid\-Input\-Exception} & class & Thrown when a value violates a domain rule (blank name, out-of-range criticality, bad password, ...). \\
+\code{Invalid\-State\-Transition\-Exception} & class & Thrown by the State pattern when an operation is not allowed in the incident's current status, e.g. closing a NEW incident. \\
+\code{Itsm\-Exception} & abstract class & Root of the I-ITSM exception hierarchy. All business errors extend this, so one handler can turn any of them into a friendly message. \\
+\code{Missing\-Sla\-Configuration\-Exception} & class & Thrown when neither a service-specific nor a default SLA policy exists for a priority. \\
+\code{Not\-Found\-Exception} & abstract class & Base class for "the thing you asked for does not exist" errors (shown as HTTP 404). \\
+\code{Service\-Not\-Found\-Exception} & class & Thrown when an IT service id or name does not exist. \\
+\code{Technician\-Unavailable\-Exception} & class & Thrown when the chosen technician is inactive or marked unavailable, or no technician can take the incident. \\
+\code{Unauthorized\-Operation\-Exception} & class & Thrown when a logged-in user tries something their role or relationship to the incident does not allow (HTTP 403). \\
+\code{User\-Not\-Found\-Exception} & class & Thrown when a user id or username does not exist. \\
+\code{Workload\-Exceeded\-Exception} & class & Thrown when assigning would push a technician over their maximum workload. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.config}}} \\
+\code{Clock\-Config} & class & Provides the system Clock. Every class that needs "now" asks this clock instead of calling Instant.now() directly, so tests (and the demo) can use a fixed or fast-forwarded clock to check SLA deadlines and escalation. \\
+\code{Password\-Config} & class & Password hashing. BCrypt is salted and deliberately slow, so leaked hashes are hard to crack. \\
+\code{Scheduling\-Config} & class & Turns on background jobs (the SLA monitor). Disabled in tests with itsm.scheduling.enabled=false, where the monitor is run directly with a controllable clock. \\
+\code{Security\-Config} & class & Authentication and role-based access: form login with BCrypt passwords (see PasswordConfig); CSRF protection on for every form; URL rules per role: /employee/**, /tech/**, /admin/**; \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.bootstrap}}} \\
+\code{Demo\-Data\-Loader} & class & Seeds an EMPTY database with the demo accounts (docs/demo-accounts.md), IT services and incident categories so the app can be used straight away. \\
+\code{Historical\-Incident\-Seeder} & class & Creates about 30 past incidents (2-20 days old) so dashboards, search, reports and the "suggested resolution" feature have realistic data. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm}}} \\
+\code{Itsm\-Application} & class & Entry point of the I-ITSM application. Spring Boot scans com.iitsm and its sub-packages. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.escalation}}} \\
+\code{Escalation} & class & Record that an unacknowledged major incident was escalated to someone more senior. \\
+\code{Escalation\-Level} & enum & The escalation chain from the brief: Technician $\rightarrow$ Team Lead $\rightarrow$ System Administrator $\rightarrow$ IT Manager. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.notification}}} \\
+\code{Channel\-Type} & enum & The ways a notification can be delivered. Each value has a matching NotificationChannel implementation (Milestone 6). \\
+\code{Notification} & class & A message sent to a user. In-app notifications are shown under the bell icon; email and SMS ones are kept as a delivery log. \\
+\multicolumn{3}{@{}l}{\cellcolor{rowtint}\textbf{\code{com.iitsm.domain.settings}}} \\
+\code{System\-Setting} & class & A setting an administrator can change while the system runs, stored as a key/value pair (e.g. assignment.strategy = skill). \\
+\bottomrule
+\end{longtable}
