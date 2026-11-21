@@ -105,10 +105,10 @@
 {\large
 \begin{tabular}{@{}L{3.6cm}L{10cm}@{}}
 \textbf{Group} & Group \groupno \\
-\textbf{Members} & Vijay Srivathsan B \hfill 2024B3A70537H \\
- & Sathvik T Hatwar \hfill 2024B3A70509H \\
+\textbf{Members} & Vishnu Rahul \hfill 2024B4AD0542H \\
+ & Vijay Srivathsan B \hfill 2024B3A70537H \\
  & Harish MP \hfill 2024B5A70641H \\
- & Vishnu Rahul \hfill 2024B4AD0542H \\
+ & Sathvik T Hatwar \hfill 2024B3A70509H \\
 \textbf{Repository} & \url{\repourl} \\
 \textbf{Demo video} & \videoname \\
 \end{tabular}\par}
@@ -670,22 +670,24 @@ The work was divided by module so that every member owns a clearly identifiable 
 \toprule
 \textbf{Member} & \textbf{Module and responsibilities} & \textbf{Main classes and artefacts} \\
 \midrule\endhead
-\textbf{Vijay Srivathsan B}\newline 2024B3A70537H & \textbf{Domain, OOP, database.} Layered architecture; the \code{Incident} aggregate and value objects; the user hierarchy; the State pattern for the lifecycle; factories; the exception hierarchy; persistence, repositories and the database design. & \code{Incident}, \code{User} hierarchy, \code{domain.incident.state}, \code{IncidentFactory}, \code{UserFactory}, \code{ItsmException} family, repositories, ER design \\
-\textbf{Sathvik T Hatwar}\newline 2024B3A70509H & \textbf{Priority, SLA, assignment.} Priority strategies and their explanation; SLA policies, deadline tracking, the background SLA monitor and risk detection; technician assignment strategies and the runtime strategy registry. & \code{priority} package, \code{SlaService}, \code{SlaMonitorService}, \code{ThresholdSlaRiskEvaluator}, \code{assignment} package, \code{AssignmentStrategyRegistry} \\
+\textbf{Vishnu Rahul}\newline 2024B4AD0542H & \textbf{Domain, OOP, database.} Layered architecture; the \code{Incident} aggregate and value objects; the user hierarchy; the State pattern for the lifecycle; factories; the exception hierarchy; persistence, repositories and the database design. & \code{Incident}, \code{User} hierarchy, \code{domain.incident.state}, \code{IncidentFactory}, \code{UserFactory}, \code{ItsmException} family, repositories, ER design \\
+\textbf{Vijay Srivathsan B}\newline 2024B3A70537H & \textbf{Priority, SLA, assignment.} Priority strategies and their explanation; SLA policies, deadline tracking, the background SLA monitor and risk detection; technician assignment strategies and the runtime strategy registry. & \code{priority} package, \code{SlaService}, \code{SlaMonitorService}, \code{ThresholdSlaRiskEvaluator}, \code{assignment} package, \code{AssignmentStrategyRegistry} \\
 \textbf{Harish MP}\newline 2024B5A70641H & \textbf{UI, security, audit, admin.} Role-specific Thymeleaf pages, theme and accessibility; Spring Security and access control; the audit trail and notifications (Observer, Adapter); administrator screens, dashboard, search and CSV export. & \code{web} package, templates, \code{app.css}, \code{SecurityConfig}, \code{GlobalExceptionHandler}, \code{AuditListener}, \code{NotificationListener}, \code{ReportService}, \code{SearchService} \\
-\textbf{Vishnu Rahul}\newline 2024B4AD0542H & \textbf{Intelligent features, tests.} Duplicate detection and correlation, category and resolution suggestions, automatic escalation, the Gemini AI advisor and the service dependency graph; the automated test suite and the documented test cases. & \code{intelligence} package, \code{EscalationService}, \code{AiIncidentAdvisor}, \code{ITService} dependencies, test suite, \code{docs/test-cases.md} \\
+\textbf{Sathvik T Hatwar}\newline 2024B3A70509H & \textbf{Intelligent features, tests.} Duplicate detection and correlation, category and resolution suggestions, automatic escalation, the Gemini AI advisor and the service dependency graph; the automated test suite and the documented test cases. & \code{intelligence} package, \code{EscalationService}, \code{AiIncidentAdvisor}, \code{ITService} dependencies, test suite, \code{docs/test-cases.md} \\
 \bottomrule
 \end{longtable}
 
 \subsection{Demonstration plan}
-\begin{tabularx}{\linewidth}{@{}L{3.6cm}L{2.2cm}Y@{}}
+Each member records one continuous segment; the four recordings are joined in the order A, B, C, D (about 18 minutes 30 seconds in total).
+
+\begin{tabularx}{\linewidth}{@{}L{0.9cm}L{3.3cm}L{2.1cm}Y@{}}
 \toprule
-\textbf{Presenter} & \textbf{Time} & \textbf{Part of the video} \\
+\textbf{Seg.} & \textbf{Presenter} & \textbf{Time} & \textbf{Content} \\
 \midrule
-Vijay Srivathsan B & 0--4 min & Introduction, architecture, domain model, State pattern and database; an illegal transition being rejected. \\
-Sathvik T Hatwar & 4--9 min & Workflow 1 (report $\rightarrow$ prioritise $\rightarrow$ assign $\rightarrow$ notify): the priority working, the SLA countdown and risk badge, switching the assignment strategy. \\
-Harish MP & 9--13 min & Workflow 2 (investigate $\rightarrow$ resolve $\rightarrow$ verify $\rightarrow$ close) through the role-based pages; access control (403); audit log, notifications and outbox; administrator screens, dashboard, dark mode. \\
-Vishnu Rahul & 13--18 min & Workflow 3: duplicate detection, outage hotspot and escalation; AI advisor and dependency impact; the test suite running. \\
+A & Vishnu Rahul & 0:00--4:00 & Foundation: the problem, architecture and technology, class diagram and encapsulation, design patterns, database and sample data. \\
+B & Vijay Srivathsan B & 4:00--8:30 & Workflow 1, report $\rightarrow$ prioritise $\rightarrow$ assign $\rightarrow$ notify: the report form, priority working and SLA, why the technician was chosen, swapping the assignment strategy, notifications and audit. \\
+C & Harish MP & 8:30--13:30 & Workflow 2, investigate $\rightarrow$ SLA $\rightarrow$ resolve $\rightarrow$ verify: the technician's view, requesting information, SLA countdown, suggested resolutions, verify and close; the audit trail, illegal transitions, security and administrator configuration. \\
+D & Sathvik T Hatwar & 13:30--18:30 & Workflow 3, duplicates $\rightarrow$ correlation $\rightarrow$ escalation: a live SLA change, duplicate flag and outage banner, dependency graph and AI advisor, dashboard, search and export, escalation, the test suite, limitations and closing. \\
 \bottomrule
 \end{tabularx}
 
