@@ -6,41 +6,49 @@
 
     var root = document.documentElement;
     var media = window.matchMedia('(prefers-color-scheme: dark)');
-    var ICONS = { light: 'bi-sun', dark: 'bi-moon-stars', auto: 'bi-circle-half' };
 
-    function readPref() {
+    function savedTheme() {
         try {
             var v = localStorage.getItem('itsm-theme');
-            return v === 'light' || v === 'dark' ? v : 'auto';
+            return v === 'light' || v === 'dark' ? v : null;
         } catch (e) {
-            return 'auto';
+            return null;
         }
     }
 
-    function savePref(pref) {
-        try {
-            if (pref === 'auto') localStorage.removeItem('itsm-theme');
-            else localStorage.setItem('itsm-theme', pref);
-        } catch (e) { /* storage blocked: the choice lasts for this page only */ }
+    function save(theme) {
+        try { localStorage.setItem('itsm-theme', theme); } catch (e) { /* storage blocked: lasts for this page only */ }
     }
 
-    function resolve(pref) {
-        return pref === 'auto' ? (media.matches ? 'dark' : 'light') : pref;
+    // Until the user clicks the toggle, the theme follows the operating system.
+    function wanted() {
+        return savedTheme() || (media.matches ? 'dark' : 'light');
     }
 
-    function apply(pref) {
-        var theme = resolve(pref);
+    function updateButton(theme) {
+        var next = theme === 'dark' ? 'light' : 'dark';
+        document.querySelectorAll('#themeToggle').forEach(function (btn) {
+            var label = 'Switch to ' + next + ' theme';
+            btn.setAttribute('aria-label', label);
+            btn.setAttribute('title', label);
+            var icon = btn.querySelector('.theme-icon');
+            if (icon) icon.className = 'bi theme-icon ' + (theme === 'dark' ? 'bi-sun' : 'bi-moon-stars');
+        });
+    }
+
+    // Switch instantly: colour transitions are suspended for the one frame in which the theme changes,
+    // so the page repaints once instead of animating every element.
+    function apply(theme) {
         var changed = root.getAttribute('data-bs-theme') !== theme;
-        root.setAttribute('data-bs-theme', theme);
-        root.setAttribute('data-theme-pref', pref);
-        document.querySelectorAll('.theme-icon').forEach(function (icon) {
-            icon.className = 'bi theme-icon ' + ICONS[pref];
-        });
-        document.querySelectorAll('[data-theme-value]').forEach(function (btn) {
-            var on = btn.getAttribute('data-theme-value') === pref;
-            btn.classList.toggle('active-theme', on);
-            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-        });
+        if (changed) {
+            root.classList.add('theme-switching');
+            root.setAttribute('data-bs-theme', theme);
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () { root.classList.remove('theme-switching'); });
+            });
+        }
+        root.setAttribute('data-theme-pref', savedTheme() || 'auto');
+        updateButton(theme);
         if (changed) {
             document.dispatchEvent(new CustomEvent('itsm:themechange', { detail: { theme: theme } }));
         }
@@ -126,24 +134,22 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        apply(readPref());
+        apply(wanted());
         staggerCards();
         countUp();
-        document.querySelectorAll('[data-theme-value]').forEach(function (btn) {
+        document.querySelectorAll('#themeToggle').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                var pref = btn.getAttribute('data-theme-value');
-                savePref(pref);
-                apply(pref);
+                var next = root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+                save(next);
+                apply(next);
             });
         });
         media.addEventListener('change', function () {
-            if (readPref() === 'auto') apply('auto');
+            if (!savedTheme()) apply(wanted());
         });
         highlightActiveNav();
         autoDismissSuccess();
         searchShortcut();
-        // enable colour transitions only after the first paint
-        requestAnimationFrame(function () { root.classList.add('theme-ready'); });
     });
 
     // Shared helper for pages that draw charts

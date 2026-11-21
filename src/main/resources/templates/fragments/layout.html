@@ -10,10 +10,9 @@
         (function () {
             var saved = null;
             try { saved = localStorage.getItem('itsm-theme'); } catch (e) { /* storage blocked */ }
-            var pref = saved === 'light' || saved === 'dark' ? saved : 'auto';
-            var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
-            document.documentElement.setAttribute('data-theme-pref', pref);
+            var theme = saved === 'light' || saved === 'dark' ? saved
+                : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-bs-theme', theme);
         })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,18 +34,10 @@
     <div class="container-xl">
         <a class="navbar-brand fw-semibold" th:href="@{/dashboard}"><i class="bi bi-life-preserver me-1"></i>I-ITSM</a>
         <div class="d-flex align-items-center order-sm-last ms-auto ms-sm-2">
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-light theme-btn" type="button" data-bs-toggle="dropdown"
-                        aria-expanded="false" aria-label="Colour theme" title="Colour theme">
-                    <i class="bi bi-circle-half theme-icon"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow">
-                    <li><h6 class="dropdown-header">Theme</h6></li>
-                    <li><button class="dropdown-item" type="button" data-theme-value="light"><i class="bi bi-sun me-2"></i>Light</button></li>
-                    <li><button class="dropdown-item" type="button" data-theme-value="dark"><i class="bi bi-moon-stars me-2"></i>Dark</button></li>
-                    <li><button class="dropdown-item" type="button" data-theme-value="auto"><i class="bi bi-circle-half me-2"></i>Match system</button></li>
-                </ul>
-            </div>
+            <button class="btn btn-sm btn-outline-light theme-btn" type="button" id="themeToggle"
+                    aria-label="Switch to dark theme" title="Switch to dark theme">
+                <i class="bi bi-moon-stars theme-icon"></i>
+            </button>
             <button class="navbar-toggler ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
                     aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation"
                     sec:authorize="isAuthenticated()">

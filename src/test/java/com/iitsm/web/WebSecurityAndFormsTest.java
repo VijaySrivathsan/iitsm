@@ -237,7 +237,7 @@ class WebSecurityAndFormsTest {
     @Test
     void loginPage_offersThemeSwitcherAndLoadsNoCdnAssets() throws Exception {
         String html = mvc.perform(get("/login")).andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-theme-value=\"dark\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"themeToggle\"")))
                 .andReturn().getResponse().getContentAsString();
         assertThat(html).doesNotContain("cdn.jsdelivr.net");
     }
