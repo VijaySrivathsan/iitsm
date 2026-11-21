@@ -24,17 +24,6 @@
         </form>
         <p class="mt-3 mb-0 small text-muted">No account? <a th:href="@{/register}">Register as an employee</a>.</p>
     </div></div>
-    <details class="card auth-card mx-auto mt-3 small" th:if="${@environment.getProperty('itsm.demo-data.enabled') == 'true'}">
-        <summary class="card-body py-2 fw-semibold"><i class="bi bi-key me-1"></i>Demo accounts (password <code>demo123</code>)</summary>
-        <div class="card-body pt-0">
-            <table class="table table-sm mb-0">
-                <tr><th class="w-50">Employee</th><td><code>emp1</code>, <code>emp2</code>, <code>emp3</code></td></tr>
-                <tr><th>Technician</th><td><code>tech1</code>, <code>tech2</code>, <code>tech3</code></td></tr>
-                <tr><th>Team lead</th><td><code>lead1</code></td></tr>
-                <tr><th>Administrator</th><td><code>admin</code></td></tr>
-            </table>
-        </div>
-    </details>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>

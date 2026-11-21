@@ -2,8 +2,7 @@
 
 **CS F213 / MAC F212 Object-Oriented Programming, Semester I 2026-27, project report**
 
-> **Before submitting, delete this note:** fill in the group number and the member rows below and in section 12, then rebuild `report.pdf` with `docs/report/build-pdf.cjs` (instructions at the top of that file).
-> Diagrams: [diagrams.md](diagrams.md), included as the appendix of the PDF.
+> The submitted report is the LaTeX version: `docs/report/latex/report.tex`, compiled to `docs/report/report.pdf` (XeLaTeX, Cambria / Calibri). This Markdown file is the working draft.
 
 | | |
 |---|---|
